@@ -19,9 +19,11 @@ web server.
 
 Limitations
 - Chord will only allow for full-key searches. Therefore, the user must know the
-  full title of the article they wish to view. Partly mitigated by having the article
-  directory (but it could be out-of date, even if article creation is broadcast to
-  all nodes -- some might be down during the broadcast).
+  full title of the article they wish to view. This is partly mitigated by having
+  the article directory (but it could be out-of date, even if article creation is
+  broadcast to all nodes -- some might be down during the broadcast). Peers could
+  periodically request updates for its successors (this check would work its way
+  around the ring).
 
 ## _Questions_
 - Q: How will the web server get the IP addresses?
@@ -44,8 +46,23 @@ Limitations
 length of successor list; number of finger table entries; etc.) (**all** params for chord/the app need
 to be listed)
 
+## App Structure and Commands
+The app is split into a server component which handles requests from the client and a client component
 
+The server must be started to use the app:
+```
+p2pwiki --server
+```
 
+You can then issue the following commands:
+- `p2pwiki --fetch <article_title> <path_to_store_article>` lets you get an article.
+- `p2pwiki --create <article_title>` lets you create a new article.
+- `p2pwiki --checkout <article_title> <path_to_store_checkedout_article>` makes
+  a copy of the article that can modified. Note that this command does _not_ prevent
+  other people from modifying the same file.
+- `p2pwiki --checkin <article_title> <path_to_updated_article>` save a modified
+  article.
+- `p2pwiki --remove <article_title>` deletes an article.
 
 ## Installation
 People interested in using the app will download it from a traditional web server
