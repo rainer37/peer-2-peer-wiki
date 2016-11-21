@@ -34,7 +34,7 @@ func TestTreedocInsert(t *testing.T) {
   t2.Insert("d", 3, "dD")
   fmt.Println(t2.traverse())
   fmt.Println(t2.Contents())
-  t2.Insert("f", 5, "dF")
+  t2.Insert("f", 4, "dF")
   fmt.Println(t2.Contents())
   t2.Insert("b", 2, "dB")
   fmt.Println(t2.Contents())
