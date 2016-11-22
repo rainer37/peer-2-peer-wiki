@@ -28,10 +28,47 @@ func (t *Treedoc) Contents() []string {
 }
 
 
-func (t *Treedoc) Delete(pos int, site string) error {
-  nodes := t.traverse()
-  (*nodes[pos-1])[0].tombstone = true
+// Prevent a value of a node from being shown to a user.
+func (t *Treedoc) Delete(pos int) error {
+  majorNodes := t.traverse()
+  curPos := 0
+
+  for i,majorNode := range majorNodes {
+    for j,miniNode := range *majorNode {
+      if !miniNode.tombstone {
+        curPos++
+        if curPos > pos-1 {
+          return fmt.Errorf("Treedoc::Delete(...) - Specified node does not exist.")
+        }
+        if curPos == pos-1 {
+          fmt.Println("Here")
+          return t.deleteNode((*majorNodes[i])[j], miniNode.id.disambiguator)
+        }
+      }
+    }
+  }
+  // if pos > len(majorNodes) {
+  //   return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")
+  // }
+  return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")  // too big
+}
+
+func (t *Treedoc) deleteNode(n *node, site string) error {
+  // NOTE since we do not perform GC on the tree currently, no need to worry about
+  // creating missing ancestor nodes.
+  fmt.Println("Here")
+  n.tombstone = true
   return nil
+
+
+  // for _,miniNode := range *majorNodes[pos-1] {
+  //   if miniNode.id.disambiguator == site {
+  //     miniNode.tombstone = true
+  //     return nil
+  //   }
+  // }
+  // //(*nodes[pos-1])[0].tombstone = true
+  // return fmt.Errorf("Treedoc::Delete(...) - Specified node does not exist.")
 }
 
 
@@ -43,6 +80,9 @@ func (t *Treedoc) Insert(atom string, pos int, site string) error {
   // only checks the path to the major node (mini-nodes appear only when newUid
   // concurrently generates the same path on DIFFERENT clients (newUid will never
   // generate the same path on the same client)).
+
+  // NOTE since we do not perform GC on the tree currently, no need to worry about
+  // creating missing ancestor nodes.
 
   switch {
   case pos <= 1:
