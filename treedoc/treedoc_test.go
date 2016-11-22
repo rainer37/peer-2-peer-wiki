@@ -24,7 +24,10 @@ func TestTreedocInsert(t *testing.T) {
   // tree.Insert("f", 6, "dF")
   // fmt.Println(tree.Contents())
 
-  t2 := &Treedoc{&[]node{node{"c",posId{path{}, "dC"},false}}, nil, nil}
+  mNode := node{"c",posId{path{}, "dC"},false}
+  t2 := &Treedoc{}
+  t2.miniNodes = append(t2.miniNodes, &mNode)
+  //t2 := &Treedoc{&[]node{node{"c",posId{path{}, "dC"},false}}, nil, nil}
   fmt.Println(t2.Contents())
   t2.Insert("e", 10, "dE")
   t2.insertNode(&node{"x",posId{path{true}, "dC"},false})
@@ -39,7 +42,7 @@ func TestTreedocInsert(t *testing.T) {
   t2.Insert("b", 2, "dB")
   fmt.Println(t2.Contents())
 
-  t2.Delete(3, "")
+  t2.Delete(11)
   fmt.Println(t2.Contents())
 }
 

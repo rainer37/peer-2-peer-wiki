@@ -5,7 +5,7 @@ import "fmt"
 // This is a standard binary tree except that each node can contain many sibling
 // nodes.
 type Treedoc struct {
-  node *[]node
+  miniNodes []*node
   left *Treedoc
   right *Treedoc
 }
@@ -17,7 +17,7 @@ func (t *Treedoc) Contents() []string {
 
   majorNodes := t.traverse()
   for _,majorNode := range majorNodes {
-    for _,miniNode := range *majorNode {
+    for _,miniNode := range majorNode {
       if !miniNode.tombstone {
         contents = append(contents, miniNode.value)
       }
@@ -34,15 +34,15 @@ func (t *Treedoc) Delete(pos int) error {
   curPos := 0
 
   for i,majorNode := range majorNodes {
-    for j,miniNode := range *majorNode {
+    for j,miniNode := range majorNode {
       if !miniNode.tombstone {
         curPos++
-        if curPos > pos-1 {
+        if curPos > pos {
           return fmt.Errorf("Treedoc::Delete(...) - Specified node does not exist.")
         }
-        if curPos == pos-1 {
+        if curPos == pos {
           fmt.Println("Here")
-          return t.deleteNode((*majorNodes[i])[j], miniNode.id.disambiguator)
+          return t.deleteNode(majorNodes[i][j], miniNode.id.disambiguator)
         }
       }
     }
@@ -86,27 +86,27 @@ func (t *Treedoc) Insert(atom string, pos int, site string) error {
 
   switch {
   case pos <= 1:
-    if len(majorNodes) == 1 || len((*majorNodes[0])[0].id.path) == 0 { // only root or infix leftmost node is root
+    if len(majorNodes) == 1 || len(majorNodes[0][0].id.path) == 0 { // only root or infix leftmost node is root
       newNode.id.path = path{false}
     } else {
-      p,err := t.newUid(&node{}, &(*majorNodes[0])[0])  // (root, left-most path (1st mini-node))
+      p,err := t.newUid(&node{}, majorNodes[0][0])  // (root, left-most path (1st mini-node))
       if err != nil {
         return fmt.Errorf("Treedoc::Insert(...) - Failed to generate new node id.")
       }
       newNode.id.path = p
     }
   case pos > len(majorNodes):
-    if len(majorNodes) == 1 || len((*majorNodes[len(majorNodes)-1])[0].id.path) == 0 { // only root or infix rightmost node is root
+    if len(majorNodes) == 1 || len(majorNodes[len(majorNodes)-1][0].id.path) == 0 { // only root or infix rightmost node is root
       newNode.id.path = path{true}
     } else {
-      p,err := t.newUid(&(*majorNodes[len(majorNodes)-1])[0], &node{})  // (right-most path (1st mini-node), root)
+      p,err := t.newUid(majorNodes[len(majorNodes)-1][0], &node{})  // (right-most path (1st mini-node), root)
       if err != nil {
         return fmt.Errorf("Treedoc::Insert(...) - Failed to generate new node id.")
       }
       newNode.id.path = p
     }
   default:
-    p,err := t.newUid(&(*majorNodes[pos-2])[0], &(*majorNodes[pos-1])[0])
+    p,err := t.newUid(majorNodes[pos-2][0], majorNodes[pos-1][0])
     if err != nil {
       return fmt.Errorf("Treedoc::Insert(...) - Failed to generate new node id.")
     }
@@ -118,11 +118,11 @@ func (t *Treedoc) Insert(atom string, pos int, site string) error {
 
 
 // Build a list of nodes in infix order
-func (t *Treedoc) infix(n *[]*[]node) {
+func (t *Treedoc) infix(n *[][]*node) {
   if t.left != nil {
     t.left.infix(n)
   }
-  *n = append(*n, t.node)
+  *n = append(*n, t.miniNodes)
   if t.right != nil {
     t.right.infix(n)
   }
@@ -159,20 +159,22 @@ func (t *Treedoc) insertNode(n *node) error {
   }
 
   if *next == nil {
-    *next = &Treedoc{&[]node{*n}, nil, nil}
+    newtd := Treedoc{}
+    newtd.miniNodes = append(newtd.miniNodes, n)
+    *next = &newtd
   } else {
     pos := -1
-    for i,miniNode := range *(*next).node {
+    for i,miniNode := range (*next).miniNodes {
       if miniNode.id.disambiguator > sid {
         pos = i
       } else if miniNode.id.disambiguator == sid {
         fmt.Errorf("Treedoc::insertNode(%v) - Attempted to insert node with duplicate disambiguator.", *n)
       }
     }
-    *(*next).node = append(*(*next).node, *n)
+    (*next).miniNodes = append((*next).miniNodes, n)
     if pos > -1 { // insert sibling node in order of disabmiguator
-      copy((*(*next).node)[pos+1:], (*(*next).node)[pos:])
-      (*(*next).node)[pos] = *n
+      copy((*next).miniNodes[pos+1:], (*next).miniNodes[pos:])
+      (*next).miniNodes[pos] = n
     }
   }
 
@@ -192,9 +194,9 @@ func (t *Treedoc) newUid(p *node, f *node) (path, error) {
   var m *node
 
   for _,majorNode := range nodes {
-    uidm := (*majorNode)[0].id  // first mini-node
+    uidm := majorNode[0].id  // first mini-node
     if uidp.before(&uidm) && uidm.before(&uidf) {
-      *m = (*majorNode)[0]
+      m = majorNode[0]
       break
     }
   }
@@ -213,8 +215,8 @@ func (t *Treedoc) newUid(p *node, f *node) (path, error) {
 }
 
 // Return an array of all nodes in the tree in infix order
-func (t *Treedoc) traverse() []*[]node {
-  var node []*[]node
+func (t *Treedoc) traverse() [][]*node {
+  var node [][]*node
   t.infix(&node)
   return node
 }
