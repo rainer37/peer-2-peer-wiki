@@ -7,223 +7,41 @@ import (
 )
 
 
-// var treeElem = []*node{
-// //  &node{"A", "c", false},
-//   &node{"dB", "b", false},
-//   &node{"dA", "a", false},
-//   &node{"A", "e", true},
-//   &node{"A", "d", false},
-//   &node{"A", "f", false},
-//
-//   //"c","b","a","e","d","f"
-// }
-
-// var treeElem = []*node{
-// //  &node{"A", "c", false},
-//   &node{"dB", "b", false},
-//   &node{"dA", "a", false},
-//   &node{"A", "g", true},
-//   &node{"A", "e", false},
-//   &node{"A", "d", false},
-//   &node{"A", "f", false},
-//   &node{"A", "h", false},
-//   //"c","b","a","e","d","f"
-// }
-
-
-var treeElem = []*node{
-//  &node{"A", "c", false},
-  &node{"dB", "b", false},
-  &node{"dA", "a", false},
-  &node{"A", "c", false},
-  &node{"A", "n", false},
-  &node{"A", "o", false},
-  &node{"A", "m", false},
-  &node{"A", "p", false},
-  //"c","b","a","e","d","f"
-}
-
-
-var paths = [][]bool {
-  //[]bool{false},
-  // []bool{false,false},
-  // []bool{true},
-  // []bool{true,false},
-  // []bool{true,true},
-}
-
-// func TestTreedoc(t *testing.T) {
-//   //fmt.Printf("treeElem is %v\n", treeElem)
-//   //tree := &Treedoc{nil, []*node{treeElem[0]}, nil}
-//   //tree := &Treedoc{nil, append(make([]*node,1), treeElem[0]), nil}
-//   tree := NewTreedoc("dC", "g")
-//
-//   for _,e := range treeElem {
-//       //fmt.Printf("Tree elem is %v\n", e)
-//       tree = tree.Insert(e)
-//   }
-//   //var summary []nodeSummary
-//   //x := tree.infix(&summary)
-//   //fmt.Println(x)
-//   fmt.Println(tree.String())
-//   //tree.Print()
-//   //fmt.Println(tree.infix())
-//   fmt.Println(tree.size())
-//
-//
-//   var prefix = []int{}
-//   var path = []nodeSummary{}
-//   fmt.Println(path)
-//   tree.infixPath(prefix, &path)
-//   fmt.Println(path)
-//   tree.Delete(8)
-//   fmt.Println(tree.Content())
-// }
-
-func TestTreedocInsertPos(t *testing.T) {
-  s := NewTreedoc("dG", "g")
-  s.insertPos(&node{"dB", "b", false},posId{[]int{0},"dB"})
-  s.insertPos(&node{"dE", "e", false},posId{[]int{1},"dE"})
-  s.insertPos(&node{"dA", "a", false},posId{[]int{0,0},"dA"})
-  fmt.Println(s.String())
-}
-
 func TestTreedocInsert(t *testing.T) {
-  s := NewTreedoc("dG", "g")
-  fmt.Println(s.String())
-  s.Insert("b", 1)
-  fmt.Println(s.String())
-  s.Insert("a", 1)
-  //s.Insert("s",3)
-  fmt.Println(s.String())
-}
-/*
-func ExampleTreedoc() {
-  tree := Treedoc{}
-  for _,e := range treeElem {
-    tree = *tree.Insert(e)
-  }
+  // tree := &Treedoc{&[]node{node{"c",posId{path{}, "dC"},false}}, nil, nil}
+  // tree.Insert("b", 1, "dB")
+  // tree.Insert("a", 1, "dA")
+  // tree.Insert("d", 4, "dD")
+  // tree.Insert("e", 5, "dE")
+  // tree.Insert("f", 6, "dF")
+  // fmt.Println(tree.Contents())
 
-  fmt.Println(tree.ToString())
-  // Output: abcdef
-}
-*/
-/*
-func TestTreedocInfixPath(t *testing.T) {
-  tree := Treedoc{}
-  for _,e := range treeElem {
-    tree = *tree.Insert(e)
-  }
+  mNode := node{"c",posId{path{}, "dC"},false}
+  t2 := &Treedoc{}
+  t2.miniNodes = append(t2.miniNodes, &mNode)
+  //t2 := &Treedoc{&[]node{node{"c",posId{path{}, "dC"},false}}, nil, nil}
+  fmt.Println(t2.Contents())
+  t2.Insert("e", 10, "dE")
+  t2.insertNode(&node{"x",posId{path{true}, "dC"},false})
+  fmt.Println(t2.Contents())
+  t2.Insert("a", 1, "dA")
+  fmt.Println(t2.Contents())
+  t2.Insert("d", 3, "dD")
+  fmt.Println(t2.traverse())
+  fmt.Println(t2.Contents())
+  t2.Insert("f", 4, "dF")
+  fmt.Println(t2.Contents())
+  t2.Insert("b", 2, "dB")
+  fmt.Println(t2.Contents())
 
-  var p = []bool{}
-  tree.infixPath(&p)
-  fmt.Println(p)
-
-
-
-  var l = []bool{}
-  var r = []bool{}
-  tree.left.infixPath(&l) // prepend false
-  tree.right.infixPath(&r) // prepend true
-  fmt.Println(l)
-  fmt.Println(r)
-
-  // output_pos - # lnodes = offset
-  // if output_pos > # lnodes then use r else use l
+  t2.Delete(1, "dC")
+  fmt.Println(t2.Contents())
 }
 
 
-func ExampleTreedoc() {
-  tree := Treedoc{}
-  for _,e := range treeElem {
-    tree = *tree.Insert(e)
-  }
-
-  // t = *t.Insert("a")
-  // t = *t.Insert("b")
-  // t = *t.Insert("c")
-  // t = *t.Insert("d")
-  // t = *t.Insert("e")
-  // t = *t.Insert("f")
-  fmt.Println(tree.ToString())
-  // Output: abcdef
-}
-
-func TestTreedocHeight(t *testing.T) {
-  tree := Treedoc{}
-  for _,e := range treeElem {
-    tree = *tree.Insert(e)
-  }
 
 
-  h := tree.left.height()
-  fmt.Println(h)
-}
 
-func TestTreedocPath(t *testing.T) {
-  tree := Treedoc{}
-  for _,e := range treeElem {
-    tree = *tree.Insert(e)
-  }
-
-  var p = []bool{}
-  tree.Path("f", &p)
-  fmt.Println(p)
-}
-
-
-func TestTreedocFind(t *testing.T) {
-
-  // var d Treedoc
-  //
-  // fmt.Println(d)
-  //
-  // d = *d.Insert("c")
-  // d = *d.Insert("b")
-  // d = *d.Insert("a")
-  // d = *d.Insert("e")
-  // d = *d.Insert("d")
-  // d = *d.Insert("f")
-  //
-  // fmt.Println(d)
-  //
-  // fmt.Println(tree.ToString())
-  // fmt.Println(tree)
-  // tree.Insert("b")
-  // fmt.Println(tree.ToString())
-  // fmt.Println(tree)
-  //
-  // tree.Insert("a")
-  // fmt.Println(tree.ToString())
-  // fmt.Println(tree)
-  // tree.Insert("e")
-  // fmt.Println(tree.ToString())
-  // tree.Insert("d")
-  // fmt.Println(tree.ToString())
-  // tree.Insert("f")
-  // fmt.Println(tree.ToString())
-
-  tree := Treedoc{}
-  for _,e := range treeElem {
-    tree = *tree.Insert(e)
-  }
-  fmt.Println(tree)
-
-  pos,err := tree.Find("c", 5)
-  if err != nil {
-    t.Error("Not expecting error.", err)
-  } else if !reflect.DeepEqual(pos,[]bool{false,false})  {
-    t.Error("Expecting posId to be [00], got %v", pos)
-  }
-
-  pos,err = tree.Find("f", 5)
-  if err != nil {
-    t.Error("Not expecting error.", err)
-  } else if !reflect.DeepEqual(pos,[]bool{true,true})  {
-    t.Error("Expecting posId to be [00], got %v", pos)
-  }
-}
-*/
 
 
 

@@ -42,7 +42,7 @@ func TestTreedocInsert(t *testing.T) {
   t2.Insert("b", 2, "dB")
   fmt.Println(t2.Contents())
 
-  t2.Delete(11)
+  t2.Delete(2)
   fmt.Println(t2.Contents())
 }
 

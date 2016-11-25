@@ -10,17 +10,15 @@ type Treedoc struct {
   right *Treedoc
 }
 
+
 // Walk the tree rooted at t in infix order.
 // Return the atoms of the non-tombstone nodes.
 func (t *Treedoc) Contents() []string {
   var contents []string
 
-  majorNodes := t.traverse()
-  for _,majorNode := range majorNodes {
-    for _,miniNode := range majorNode {
-      if !miniNode.tombstone {
-        contents = append(contents, miniNode.value)
-      }
+  for _, node := range t.traverse() {
+    if !node.tombstone {
+      contents = append(contents, node.value)
     }
   }
 
@@ -30,50 +28,19 @@ func (t *Treedoc) Contents() []string {
 
 // Prevent a value of a node from being shown to a user.
 func (t *Treedoc) Delete(pos int) error {
-  majorNodes := t.traverse()
-  curPos := 0
-
-  for i,majorNode := range majorNodes {
-    for j,miniNode := range majorNode {
-      if !miniNode.tombstone {
-        curPos++
-        if curPos > pos {
-          return fmt.Errorf("Treedoc::Delete(...) - Specified node does not exist.")
-        }
-        if curPos == pos {
-          fmt.Println("Here")
-          return t.deleteNode(majorNodes[i][j], miniNode.id.disambiguator)
-        }
-      }
-    }
+  nodes := t.traverse()
+  if len(nodes) < pos {
+    return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")  // too big
   }
-  // if pos > len(majorNodes) {
-  //   return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")
-  // }
-  return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")  // too big
-}
 
-func (t *Treedoc) deleteNode(n *node, site string) error {
-  // NOTE since we do not perform GC on the tree currently, no need to worry about
-  // creating missing ancestor nodes.
-  fmt.Println("Here")
-  n.tombstone = true
-  return nil
-
-
-  // for _,miniNode := range *majorNodes[pos-1] {
-  //   if miniNode.id.disambiguator == site {
-  //     miniNode.tombstone = true
-  //     return nil
-  //   }
-  // }
-  // //(*nodes[pos-1])[0].tombstone = true
-  // return fmt.Errorf("Treedoc::Delete(...) - Specified node does not exist.")
+  return t.deleteNode(nodes[pos-1], nodes[pos-1].id.disambiguator)
 }
 
 
+// Insert text at the specified position and identify the mini node that is created
+// with the site parameter.
 func (t *Treedoc) Insert(atom string, pos int, site string) error {
-  majorNodes := t.traverse()
+  majorNodes := t.getMajorNodes()
   newNode := node{atom,posId{path{}, site},false}
 
   // NOTE in calls to newUid, only send the 1st mini-node. This works because newUid,
@@ -117,21 +84,41 @@ func (t *Treedoc) Insert(atom string, pos int, site string) error {
 }
 
 
+// Implements the treedoc delete function
+func (t *Treedoc) deleteNode(n *node, site string) error {
+  // NOTE since we do not perform GC on the tree currently, no need to worry about
+  // creating missing ancestor nodes.
+
+  n.tombstone = true
+  return nil
+}
+
+
+// Returns major nodes and their mini nodes as a 2D array
+func (t *Treedoc) getMajorNodes() [][]*node {
+  var majorNodes [][]*node
+  t.infix(&majorNodes)
+  return majorNodes
+}
+
+
 // Build a list of nodes in infix order
 func (t *Treedoc) infix(n *[][]*node) {
   if t.left != nil {
     t.left.infix(n)
   }
+
   *n = append(*n, t.miniNodes)
+
   if t.right != nil {
     t.right.infix(n)
   }
 }
 
-// Helper function to insert a node into the treedoc at the specified posId.
+
+// Helper function to insert a node into the treedoc.
 // Require: 1) non-empty path for insertion; 2) path must be unique
 func (t *Treedoc) insertNode(n *node) error {
-  //fmt.Printf("Treedoc::insertNode(%v)\n", n)
   path := n.id.path
   sid := n.id.disambiguator
 
@@ -181,6 +168,7 @@ func (t *Treedoc) insertNode(n *node) error {
   return nil
 }
 
+
 // Generate a unique path for a new node to be inserted between nodes p and f
 // Require: p < f (where < is the posId.before operation)
 func (t *Treedoc) newUid(p *node, f *node) (path, error) {
@@ -190,10 +178,10 @@ func (t *Treedoc) newUid(p *node, f *node) (path, error) {
     return path{}, fmt.Errorf("Treedoc::newUid(p:%v, f:%v) - p.podId !< f.posId", *p, *f)
   }
 
-  nodes := t.traverse()
+  majorNodes := t.getMajorNodes()
   var m *node
 
-  for _,majorNode := range nodes {
+  for _,majorNode := range majorNodes {
     uidm := majorNode[0].id  // first mini-node
     if uidp.before(&uidm) && uidm.before(&uidf) {
       m = majorNode[0]
@@ -203,7 +191,6 @@ func (t *Treedoc) newUid(p *node, f *node) (path, error) {
 
   switch {
   case m != nil: // elements between p and f
-    fmt.Println("Node between p and f.")
     return t.newUid(p, m)
   case p.ancestor(f):
     return append(uidf.path, false), nil
@@ -214,11 +201,20 @@ func (t *Treedoc) newUid(p *node, f *node) (path, error) {
   }
 }
 
+
 // Return an array of all nodes in the tree in infix order
-func (t *Treedoc) traverse() [][]*node {
-  var node [][]*node
-  t.infix(&node)
-  return node
+func (t *Treedoc) traverse() []*node {
+  var miniNodes []*node
+  majorNodes := t.getMajorNodes()
+
+  // flatten the tree (only use mini nodes)
+  for _,majorNode := range majorNodes {
+    for _,miniNode := range majorNode {
+      miniNodes = append(miniNodes, miniNode)
+    }
+  }
+
+  return miniNodes
 }
 
 
