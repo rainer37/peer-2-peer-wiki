@@ -1,5 +1,6 @@
 package article
 
+import "fmt"
 
 type SharedBuffer struct {
   Title string
@@ -12,6 +13,11 @@ func NewSharedBuffer(title string) *SharedBuffer {
 
   return &b
 }
+func OpenSharedBuffer(title string, path string) *SharedBuffer {
+  // TODO implement
+  return nil
+}
+
 
 func (b *SharedBuffer) Replay(log OpLog) error {
 
@@ -31,4 +37,8 @@ func (b *SharedBuffer) Replay(log OpLog) error {
 
 func (b *SharedBuffer) Contents() []string {
   return b.Hist.Contents()
+}
+
+func (b *SharedBuffer) Save(path string) {
+  // marshal file and write to disk
 }

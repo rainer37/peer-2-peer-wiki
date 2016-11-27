@@ -1,75 +1,117 @@
-package p2pwiki
+package main
 
 import (
   "os"
-  "fmt"
+  "log"
   "strconv"
+  "github.com/nickbradley/p2pwiki/chord"
   "github.com/nickbradley/p2pwiki/article"
 )
 
 func main() {
-  args := os.Args[1:]
+  cacheDir := "../articles/cache/"
+  srvAddr := os.Args[1]
+  appCmd := os.Args[2]
+  subCmd := os.Args[3]
+  subArg := os.Args[4:]
 
-  switch args[0] {
+  // log.Println(os.Args)
+  // log.Println(srvAddr)
+  // log.Println(appCmd)
+  // log.Println(subCmd)
+  // log.Println(subArg)
+
+  switch appCmd {
   case "article":
-    switch args[1] {
-    case "pull":
-      title := args[2]
+    switch subCmd {
+    case "pull":  // p2pwiki 127.0.0.1:2222 article pull "<title>"
+      var contents []string
+      title := subArg[0]
+      hTitle := chord.Hash(title)
 
-      contents,err := chord.Lookup(title)
+      err := chord.RPCall(srvAddr, hTitle, &contents, "Pull")
       if err != nil {
         // print warning re creating new article
       }
-      article := article.NewLocal(title, contents)
-      article.Save()
+      article := article.NewLocalBuffer(title, contents, srvAddr)
+      article.Save(cacheDir)
 
-    case "insert":
-      title := args[2]
-      article,err := article.OpenLocal(title)
+    case "insert":  // p2pwiki 127.0.0.1:2222 article insert "<title>" <pos> "<text>"
+      title := subArg[0]
+      article,err := article.OpenLocalBuffer(cacheDir, title)
       if err != nil {
-        fmt.Fatal("You must first pull article.")
+        log.Fatal("You must first pull article.")
       }
 
-      pos,err := strconv.Atoi(args[3])
+      pos,err := strconv.Atoi(subArg[1])
       if err != nil {
-        fmt.Fatal("Invalid position parameter.")
+        log.Fatal("Invalid position parameter.")
       }
-      text := args[4]
+      text := subArg[2]
       err = article.Insert(pos, text)
       if err != nil {
-        fmt.Fatal("Failed to insert paragraph.")
+        log.Fatal("Failed to insert paragraph.")
       }
-      article.Save()
+      article.Save(cacheDir)
 
-    case "delete":
-      title := args[2]
-      article,err := article.OpenLocal(title)
+    case "delete":  // p2pwiki 127.0.0.1:2222 article delete "<title>" <pos>
+      title := subArg[0]
+      article,err := article.OpenLocalBuffer(cacheDir, title)
       if err != nil {
-        fmt.Fatal("You must first pull article.")
+        log.Fatal("You must first pull article.")
       }
 
-      pos,err := strconv.Atoi(args[3])
+      pos,err := strconv.Atoi(subArg[2])
       if err != nil {
-        fmt.Fatal("Invalid position parameter.")
+        log.Fatal("Invalid position parameter.")
       }
-      text := args[4]
+
       err = article.Delete(pos)
       if err != nil {
-        fmt.Fatal("Failed to delete paragraph.")
+        log.Fatal("Failed to delete paragraph.")
       }
-      article.Save()
-      
-    case "push":
-      title := args[2]
-      article,err := article.OpenLocal(title)
+      article.Save(cacheDir)
+
+    case "push":  // p2pwiki 127.0.0.1:2222 article push "<title>"
+      title := subArg[0]
+
+      article,err := article.OpenLocalBuffer(cacheDir, title)
       if err != nil {
-        fmt.Fatal("You must first pull article.")
+        log.Fatal("You must first pull article.")
       }
-      chord.Send(article.log)
+
+      // Send the operations log to the server. Retry sending unsuccessful operations
+      // until all operations have go through.
+      expectCount := len(article.Log.Operations)
+      replayCount := 0
+      for expectCount > replayCount {
+        chord.RPCall(srvAddr, article.Log, &replayCount, "Push")
+        err = article.Log.Remove(replayCount)
+        if err != nil {
+          log.Fatal("Unexpected error encountered while sending changes to server.")
+        }
+      }
+
+      article.Save(cacheDir)
     default:
-      fmt.Fatal("Invalid article command.")
+      log.Fatal("Invalid article command.")
+    }
+
+  case "server":
+    switch subCmd {
+    case "start":
+      switch subArg[0] {
+      case "create":  // p2pwiki 127.0.0.1:2222 server start create
+        chord.CreateRing()
+      case "join":  // p2pwiki 127.0.0.1:2222 server start join 127.0.0.1:3333
+        new_node := chord.NewNode(srvAddr)
+        new_node.Join(subArg[1])
+      default: log.Fatal("Invalid server start command.")
+      }
+    default:
+      log.Fatal("Invalid server command.")
     }
   default:
-    fmt.Fatal("Invalid command.")
+    log.Fatal("Invalid command.")
   }
 }

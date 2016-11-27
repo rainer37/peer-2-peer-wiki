@@ -5,6 +5,7 @@ import (
   "encoding/json"
   "strings"
   "io/ioutil"
+  //"github.com/nickbradley/p2pwiki/util"
 )
 
 type LocalBuffer struct {
@@ -15,6 +16,7 @@ type LocalBuffer struct {
 
 func NewLocalBuffer(title string, paragraphs []string, site string) *LocalBuffer {
   opLog := OpLog{}
+  opLog.Title = title
   opLog.Site = site
   a := LocalBuffer{title, paragraphs, opLog}
   return &a
@@ -41,7 +43,7 @@ func (a *LocalBuffer) Insert(pos int, text string) error {
     copy(a.Paras[i+1:], a.Paras[i:])
     a.Paras[i] = text
   }
-  a.Log.append("insert", OpArg{pos, text})
+  a.Log.Append("insert", OpArg{pos, text})
 
   return nil
 }
@@ -59,7 +61,7 @@ func (a *LocalBuffer) Delete(pos int) error {
     a.Paras[len(a.Paras)-1] = ""
     a.Paras = a.Paras[:len(a.Paras)-1]
   }
-  a.Log.append("delete", OpArg{pos,""})
+  a.Log.Append("delete", OpArg{pos,""})
 
   return nil
 }
@@ -80,15 +82,37 @@ func (a *LocalBuffer) String() string {
 }
 
 
-
 type OpLog struct {
+  Title string
   Site string
   Operations []string
   OpArgs []OpArg
 }
-func (r *OpLog) append(operation string, args OpArg) {
+func (r *OpLog) Append(operation string, args OpArg) {
   r.Operations = append(r.Operations, operation)
   r.OpArgs = append(r.OpArgs, args)
+}
+func (r *OpLog) Remove(upto int) error {
+  i := upto - 1
+
+  switch {
+  case upto < 1:
+    fmt.Errorf("OpLog::Remove() - Invalid position.")
+  case upto > len(r.Operations):
+    i = len(r.Operations) - 1
+  }
+
+  // delete from Operations array
+  copy(r.Operations[i:], r.Operations[i+1:])
+  r.Operations[len(r.Operations)-1] = ""
+  r.Operations = r.Operations[:len(r.Operations)-1]
+
+  // delete from OpArgs array
+  copy(r.OpArgs[i:], r.OpArgs[i+1:])
+  r.OpArgs[len(r.OpArgs)-1] = OpArg{}
+  r.OpArgs = r.OpArgs[:len(r.OpArgs)-1]
+
+  return nil
 }
 
 type OpArg struct {
