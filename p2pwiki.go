@@ -93,6 +93,13 @@ func main() {
       }
 
       article.Save(cacheDir)
+    case "view":
+      title := subArg[0]
+      article,err := article.OpenLocalBuffer(cacheDir, title)
+      if err != nil {
+        log.Fatal("You must first pull article.")
+      }
+      article.Print()
     default:
       log.Fatal("Invalid article command.")
     }

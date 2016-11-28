@@ -1,6 +1,10 @@
 package article
 
-import "fmt"
+import (
+  "fmt"
+  "encoding/json"
+  "io/ioutil"
+  )
 
 type SharedBuffer struct {
   Title string
@@ -8,25 +12,28 @@ type SharedBuffer struct {
 }
 
 func NewSharedBuffer(title string) *SharedBuffer {
-  b := SharedBuffer{}
-  b.Title = title
+  sb := SharedBuffer{}
+  sb.Title = title
 
-  return &b
+  return &sb
 }
-func OpenSharedBuffer(title string, path string) *SharedBuffer {
-  // TODO implement
-  return nil
+func OpenSharedBuffer(title string, path string) (*SharedBuffer, error) {
+  var sb SharedBuffer
+  dat,err := ioutil.ReadFile(path + title + ".json")
+  err = json.Unmarshal(dat, &sb)
+
+  return &sb, err
 }
 
 
-func (b *SharedBuffer) Replay(log OpLog) error {
+func (sb *SharedBuffer) Replay(log OpLog) error {
 
   for i,op := range log.Operations {
     switch op {
     case "insert":
-      b.Hist.Insert(log.OpArgs[i].Text, log.OpArgs[i].Pos, log.Site)
+      sb.Hist.Insert(log.OpArgs[i].Text, log.OpArgs[i].Pos, log.Site)
     case "delete":
-      b.Hist.Delete(log.OpArgs[i].Pos, log.Site)
+      sb.Hist.Delete(log.OpArgs[i].Pos, log.Site)
     default:
       return fmt.Errorf("Unkown operation in replay log.")
     }
@@ -35,10 +42,16 @@ func (b *SharedBuffer) Replay(log OpLog) error {
   return nil
 }
 
-func (b *SharedBuffer) Contents() []string {
-  return b.Hist.Contents()
+func (sb *SharedBuffer) Contents() []string {
+  return sb.Hist.Contents()
 }
 
-func (b *SharedBuffer) Save(path string) {
-  // marshal file and write to disk
+func (sb *SharedBuffer) Save(path string) error {
+  dat,err := json.Marshal(*sb)
+  if err != nil {
+    return err
+  }
+
+  err = ioutil.WriteFile(path + sb.Title + ".json", dat, 0644)
+  return err
 }

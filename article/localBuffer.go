@@ -5,7 +5,6 @@ import (
   "encoding/json"
   "strings"
   "io/ioutil"
-  //"github.com/nickbradley/p2pwiki/util"
 )
 
 type LocalBuffer struct {
@@ -18,8 +17,8 @@ func NewLocalBuffer(title string, paragraphs []string, site string) *LocalBuffer
   opLog := OpLog{}
   opLog.Title = title
   opLog.Site = site
-  a := LocalBuffer{title, paragraphs, opLog}
-  return &a
+  lb := LocalBuffer{title, paragraphs, opLog}
+  return &lb
 }
 
 func OpenLocalBuffer(path string, title string) (*LocalBuffer, error) {
@@ -31,54 +30,63 @@ func OpenLocalBuffer(path string, title string) (*LocalBuffer, error) {
 }
 
 // Insert a paragraph at the location specified
-func (a *LocalBuffer) Insert(pos int, text string) error {
+func (lb *LocalBuffer) Insert(pos int, text string) error {
   switch {
   case pos < 1:
     fmt.Errorf("LocalBuffer::Insert(...) - Position must be greater than 1.")
-  case pos > len(a.Paras):
-    a.Paras = append(a.Paras, text)
+  case pos > len(lb.Paras):
+    lb.Paras = append(lb.Paras, text)
   default:
     i := pos-1
-    a.Paras = append(a.Paras, "")
-    copy(a.Paras[i+1:], a.Paras[i:])
-    a.Paras[i] = text
+    lb.Paras = append(lb.Paras, "")
+    copy(lb.Paras[i+1:], lb.Paras[i:])
+    lb.Paras[i] = text
   }
-  a.Log.Append("insert", OpArg{pos, text})
+  lb.Log.Append("insert", OpArg{pos, text})
 
   return nil
 }
 
 // Remove the paragraph at the specified position
-func (a *LocalBuffer) Delete(pos int) error {
+func (lb *LocalBuffer) Delete(pos int) error {
   switch {
   case pos < 1:
     fmt.Errorf("LocalBuffer::Insert(...) - Position must be greater than 1.")
-  case pos > len(a.Paras):
-    _,a.Paras = a.Paras[len(a.Paras)-1], a.Paras[:len(a.Paras)-1]
+  case pos > len(lb.Paras):
+    _,lb.Paras = lb.Paras[len(lb.Paras)-1], lb.Paras[:len(lb.Paras)-1]
   default:
     i := pos-1
-    copy(a.Paras[i:], a.Paras[i+1:])
-    a.Paras[len(a.Paras)-1] = ""
-    a.Paras = a.Paras[:len(a.Paras)-1]
+    copy(lb.Paras[i:], lb.Paras[i+1:])
+    lb.Paras[len(lb.Paras)-1] = ""
+    lb.Paras = lb.Paras[:len(lb.Paras)-1]
   }
-  a.Log.Append("delete", OpArg{pos,""})
+  lb.Log.Append("delete", OpArg{pos,""})
 
   return nil
 }
 
-func (a *LocalBuffer) Save(path string) error {
-  b,err := json.Marshal(*a)
+func (lb *LocalBuffer) Print() {
+  fmt.Printf("\n%s\n", lb.Title)
+  fmt.Printf("%s\n", strings.Repeat("-", len(lb.Title)))
+  for _,paragraph := range lb.Paras {
+    fmt.Printf("%s\n", paragraph)
+  }
+  fmt.Printf("\n\n")
+}
+
+func (lb *LocalBuffer) Save(path string) error {
+  dat,err := json.Marshal(*lb)
   if err != nil {
     return err
   }
 
-  err = ioutil.WriteFile(path + a.Title + ".json", b, 0644)
+  err = ioutil.WriteFile(path + lb.Title + ".json", dat, 0644)
   return err
 }
 
 
-func (a *LocalBuffer) String() string {
-  return strings.Join(a.Paras, "\n")
+func (lb *LocalBuffer) String() string {
+  return strings.Join(lb.Paras, "\n")
 }
 
 

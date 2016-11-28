@@ -39,8 +39,8 @@ func (t *Treedoc) Delete(pos int, site string) error {
   if len(siteNodes) < pos {
     return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")  // too big
   }
+
   return t.deleteNode(siteNodes[pos-1], site)
-  //return t.deleteNode(nodes[pos-1], nodes[pos-1].id.disambiguator)
 }
 
 
@@ -57,6 +57,11 @@ func (t *Treedoc) Insert(atom string, pos int, site string) error {
 
   // NOTE since we do not perform GC on the tree currently, no need to worry about
   // creating missing ancestor nodes.
+
+  // If this is the first insert, ignore the position and create a root node
+  if t.isEmpty() {
+    return t.insertNode(&newNode)
+  }
 
   switch {
   case pos <= 1:
@@ -131,7 +136,12 @@ func (t *Treedoc) insertNode(n *node) error {
 
   // error checking
   if len(path) < 1 {
-    fmt.Errorf("Treedoc::insertNode(%v) - Empty path.", *n)
+    if t.isEmpty() {
+      t.miniNodes = append(t.miniNodes, n)
+      return nil
+    } else {
+      return fmt.Errorf("Treedoc::insertNode(%v) - Empty path.", *n)
+    }
   }
 
   if len(path) > 1 {
@@ -175,15 +185,19 @@ func (t *Treedoc) insertNode(n *node) error {
   return nil
 }
 
+func (t *Treedoc) isEmpty() bool {
+  majorNodes := t.getMajorNodes()
+  return len(majorNodes[0]) == 0
+}
 
 // Generate a unique path for a new node to be inserted between nodes p and f
 // Require: p < f (where < is the posId.before operation)
 func (t *Treedoc) newUid(p *node, f *node) (path, error) {
   uidp := p.id
   uidf := f.id
-  if !uidp.before(&uidf) {
-    return path{}, fmt.Errorf("Treedoc::newUid(p:%v, f:%v) - p.podId !< f.posId", *p, *f)
-  }
+  // if !uidp.before(&uidf) {
+  //   return path{}, fmt.Errorf("Treedoc::newUid(p:%v, f:%v) - p.podId !< f.posId", *p, *f)
+  // }
 
   majorNodes := t.getMajorNodes()
   var m *node
