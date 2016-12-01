@@ -1,25 +1,70 @@
 package article
 
-import "fmt"
+import (
+  "fmt"
+)
+
+type Direction int8
+const (
+  Empty Direction = -1  // root
+  Left Direction = 0  // left branch
+  Right Direction = 1  // right branch
+)
 
 // This is a standard binary tree except that each node can contain many sibling
 // nodes.
 type Treedoc struct {
-  miniNodes []*node
-  left *Treedoc
-  right *Treedoc
+  MiniNodes []*Node
+  Left *Treedoc
+  Right *Treedoc
 }
+
+// A node in the treedoc. Nodes have a value, path, disambiguator (siteId) and
+// an indicator of whether the node is visible (deleted).
+type Node struct {
+  Value Atom
+  Site Disambiguator
+  Tombstone bool  // true if node has been deleted
+  Left *Treedoc
+  Right *Treedoc
+}
+
+// Nodes are identified in a treedoc by their path and their disambiguator (siteId)
+type PosId struct {
+  Dir Direction
+  Site Disambiguator
+}
+
+// Represents the smallest unit that can be modified atomically
+type Atom string
+
+// A treedoc is a binary tree so a path is a bitstring (represented as an array)
+// starting from the root where a 0 indicates a left branch and a 1 indicates a
+// right branch.
+type Path []PosId
+
+// A globally-unique identifier for the process making the action
+type Disambiguator string
+
+// A list of insert/delete commands executed locally
+type OpLog []Operation
+
+type Operation struct {
+  Command string  // "insert" or "delete"
+  Path Path
+  Site Disambiguator
+}
+
+
 
 
 // Walk the tree rooted at t in infix order.
 // Return the atoms of the non-tombstone nodes.
-func (t *Treedoc) Contents() []string {
-  var contents []string
+func (t *Treedoc) Contents() []Atom {
+  var contents []Atom
 
-  for _, node := range t.traverse() {
-    if !node.tombstone {
-      contents = append(contents, node.value)
-    }
+  for _, node := range t.traverseVisible() {
+    contents = append(contents, node.Value)
   }
 
   return contents
@@ -27,100 +72,135 @@ func (t *Treedoc) Contents() []string {
 
 
 // Prevent a value of a node from being shown to a user.
-func (t *Treedoc) Delete(pos int, site string) error {
-  nodes := t.traverse()
-  var siteNodes []*node
-  for _,node := range nodes {
-    if node.id.disambiguator == site {
-      siteNodes = append(siteNodes, node)
-    }
+// Does not remove node from tree,
+func (t *Treedoc) Delete(pos int, site Disambiguator) (*Node, error) {
+  nodes := t.traverseVisible()
+  if pos > len(nodes) {
+    return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")
   }
+  nodes[pos-1].Tombstone = true
 
-  if len(siteNodes) < pos {
-    return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")  // too big
-  }
-
-  return t.deleteNode(siteNodes[pos-1], site)
-}
-
-
-// Insert text at the specified position and identify the mini node that is created
-// with the site parameter.
-func (t *Treedoc) Insert(atom string, pos int, site string) error {
-  majorNodes := t.getMajorNodes()
-  newNode := node{atom,posId{path{}, site},false}
-
-  // NOTE in calls to newUid, only send the 1st mini-node. This works because newUid,
-  // only checks the path to the major node (mini-nodes appear only when newUid
-  // concurrently generates the same path on DIFFERENT clients (newUid will never
-  // generate the same path on the same client)).
-
-  // NOTE since we do not perform GC on the tree currently, no need to worry about
-  // creating missing ancestor nodes.
-
-  // If this is the first insert, ignore the position and create a root node
-  if t.isEmpty() {
-    return t.insertNode(&newNode)
-  }
-
-  switch {
-  case pos <= 1:
-    if len(majorNodes) == 1 || len(majorNodes[0][0].id.path) == 0 { // only root or infix leftmost node is root
-      newNode.id.path = path{false}
-    } else {
-      p,err := t.newUid(&node{}, majorNodes[0][0])  // (root, left-most path (1st mini-node))
-      if err != nil {
-        return fmt.Errorf("Treedoc::Insert(...) - Failed to generate new node id.")
-      }
-      newNode.id.path = p
-    }
-  case pos > len(majorNodes):
-    if len(majorNodes) == 1 || len(majorNodes[len(majorNodes)-1][0].id.path) == 0 { // only root or infix rightmost node is root
-      newNode.id.path = path{true}
-    } else {
-      p,err := t.newUid(majorNodes[len(majorNodes)-1][0], &node{})  // (right-most path (1st mini-node), root)
-      if err != nil {
-        return fmt.Errorf("Treedoc::Insert(...) - Failed to generate new node id.")
-      }
-      newNode.id.path = p
-    }
-  default:
-    p,err := t.newUid(majorNodes[pos-2][0], majorNodes[pos-1][0])
-    if err != nil {
-      return fmt.Errorf("Treedoc::Insert(...) - Failed to generate new node id.")
-    }
-    newNode.id.path = p
-  }
-
-  return t.insertNode(&newNode)
-}
-
-
-// Implements the treedoc delete function
-func (t *Treedoc) deleteNode(n *node, site string) error {
-  // NOTE since we do not perform GC on the tree currently, no need to worry about
-  // creating missing ancestor nodes.
-
-  n.tombstone = true
   return nil
 }
 
 
-// Returns major nodes and their mini nodes as a 2D array
-func (t *Treedoc) getMajorNodes() [][]*node {
-  var majorNodes [][]*node
-  t.infix(&majorNodes)
-  return majorNodes
+func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (*Node, error) {
+  nodes := t.traverse()
+
+  if pos > len(t.traverseVisible())+1 || pos < 0 {
+    return fmt.Errorf("Treedoc::Insert(...) - Position is invalid.")
+  }
+
+  pid := Path{}
+  switch len(nodes) {
+  case 0:  // empty tree
+    pid = append(pid, PosId{Empty, site})
+  case 1:  // tree has only one node
+    if pos == 1 {
+      pid = append(pid, PosId{Left, site})
+    } else {
+      pid = append(pid, PosId{Right, site})
+    }
+  default:
+    p,err := t.path(pos-1)
+    f,err := t.path(pos)
+    if err != nil {
+      return fmt.Errorf("Treedoc::Insert(...) - Could not find path for given position.")
+    }
+
+    pid,err := newUid(p, f)
+    if err != nil {
+      return fmt.Errorf("Treedoc::Insert(...) - Failed to find a path to insert.")
+    }
+  }
+
+  return t.insertNode(pid, &Node{atom, site, false, nil, nil})
+}
+
+
+func (t *Treedoc) insertNode(path Path, n *Node) error {
+  next,err := t.walk(path)
+  if err != nil {
+    return fmt.Errorf("Treedoc::insertNode(...) - Invalid path.")
+  }
+
+  newTd := Treedoc{}
+  newTd.MiniNodes = append(newTd.MiniNodes, n)
+  next = &newTd
+
+  return nil
+}
+
+
+func (t *Treedoc) deleteNode(path Path) {
+  n,err := t.walk(path)
+  if err != nil {
+    return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
+  }
+
+  n.Tombstone = true
+
+  return nil
+}
+
+
+func (t *Treedoc) walk(path Path) (*Treedoc, error) {
+  lenP := len(path)
+
+  for i,p := range path {
+    switch {
+    case p.Dir == Empty:
+      for _,m := range t.MiniNodes {
+        if m.Site == p.Site {
+          t = m  // change pointer from root major node to root mini-node
+        }
+      }
+    case p.Dir == Right && p.Site == "":  // right on major node
+      t = t.Right
+    case p.Dir == Left && p.Site == "":  // left on major node
+      t = t.Left
+    case p.Dir == Right:  // right on sibling node
+      for _,m := range t.MiniNodes {
+        if m.Site == path.Site {
+          t = m.Right
+        }
+      }
+    case path[i].Dir == Left:  // left on sibling node
+      for _,m := range t.MiniNodes {
+        if m.Site == path.Side {
+          t = m.Left
+        }
+      }
+    }
+  }
+
+  return t
+}
+
+
+func (t *Treedoc) path(pos int) (Path, error) {
+  // translate pos (which is for visible) to infix position of all nodes
+  // call infix to the limit
 }
 
 
 // Build a list of nodes in infix order
-func (t *Treedoc) infix(n *[][]*node) {
+func (t *Treedoc) infix(p *Path, n *[]*node, depth int) {
   if t.left != nil {
     t.left.infix(n)
   }
 
-  *n = append(*n, t.miniNodes)
+  for _,m := range t.miniNodes {
+    if m.left != nil {
+      m.left.infix(n)
+    }
+
+    *n = append(*n, m)
+
+    if m.right != nil {
+      m.right.infix(n)
+    }
+  }
 
   if t.right != nil {
     t.right.infix(n)
@@ -128,126 +208,83 @@ func (t *Treedoc) infix(n *[][]*node) {
 }
 
 
-// Helper function to insert a node into the treedoc.
-// Require: 1) non-empty path for insertion; 2) path must be unique
-func (t *Treedoc) insertNode(n *node) error {
-  path := n.id.path
-  sid := n.id.disambiguator
-
-  // error checking
-  if len(path) < 1 {
-    if t.isEmpty() {
-      t.miniNodes = append(t.miniNodes, n)
-      return nil
-    } else {
-      return fmt.Errorf("Treedoc::insertNode(%v) - Empty path.", *n)
-    }
-  }
-
-  if len(path) > 1 {
-    // Iterate over the path to set the t pointer to the correct node
-    for i := range path[:len(path)-1] {
-      if path[i] {
-        t = t.right
-      } else {
-        t = t.left
-      }
-    }
-  }
-
-  // Insert the node by setting the left or right pointer to the node's address
-  // if a node doesn't already exist. Otherwise, append new node as a mini-node.
-  next := &t.left
-  if path[len(path)-1] {
-    next = &t.right
-  }
-
-  if *next == nil {
-    newtd := Treedoc{}
-    newtd.miniNodes = append(newtd.miniNodes, n)
-    *next = &newtd
-  } else {
-    pos := -1
-    for i,miniNode := range (*next).miniNodes {
-      if miniNode.id.disambiguator > sid {
-        pos = i
-      } else if miniNode.id.disambiguator == sid {
-        fmt.Errorf("Treedoc::insertNode(%v) - Attempted to insert node with duplicate disambiguator.", *n)
-      }
-    }
-    (*next).miniNodes = append((*next).miniNodes, n)
-    if pos > -1 { // insert sibling node in order of disabmiguator
-      copy((*next).miniNodes[pos+1:], (*next).miniNodes[pos:])
-      (*next).miniNodes[pos] = n
-    }
-  }
-
-  return nil
-}
-
 func (t *Treedoc) isEmpty() bool {
-  majorNodes := t.getMajorNodes()
-  return len(majorNodes[0]) == 0
-}
-
-// Generate a unique path for a new node to be inserted between nodes p and f
-// Require: p < f (where < is the posId.before operation)
-func (t *Treedoc) newUid(p *node, f *node) (path, error) {
-  uidp := p.id
-  uidf := f.id
-  // if !uidp.before(&uidf) {
-  //   return path{}, fmt.Errorf("Treedoc::newUid(p:%v, f:%v) - p.podId !< f.posId", *p, *f)
-  // }
-
-  majorNodes := t.getMajorNodes()
-  var m *node
-
-  for _,majorNode := range majorNodes {
-    uidm := majorNode[0].id  // first mini-node
-    if uidp.before(&uidm) && uidm.before(&uidf) {
-      m = majorNode[0]
-      break
-    }
-  }
-
-  switch {
-  case m != nil: // elements between p and f
-    return t.newUid(p, m)
-  case p.ancestor(f):
-    return append(uidf.path, false), nil
-  case f.ancestor(p):
-    return append(uidp.path, true), nil
-  default:
-    return append(uidp.path, true), nil
-  }
+  return len(t.miniNodes) == 0
 }
 
 
 // Return an array of all nodes in the tree in infix order
 func (t *Treedoc) traverse() []*node {
-  var miniNodes []*node
-  majorNodes := t.getMajorNodes()
+  var nodes []*node
+  t.infix(&nodes, -1)
+  return nodes
+}
 
-  // flatten the tree (only use mini nodes)
-  for _,majorNode := range majorNodes {
-    for _,miniNode := range majorNode {
-      miniNodes = append(miniNodes, miniNode)
+func (t *Treedoc) traverseVisible() []*node {
+  var visNodes []*node
+  var nodes []*node
+  t.infix(&nodes)
+
+  for _,n := range nodes {
+    if !n.tombstone {
+      visNodes = append(visNodes, n)
     }
   }
 
-  return miniNodes
+  return visNodes
 }
 
 
 
 
-// A node in the treedoc. Nodes have a value, path, disambiguator (siteId) and
-// an indicator of whether the node is visible (deleted).
-type node struct {
-  value string
-  id posId  // once the node is inserted, the path will never change so store it
-  tombstone bool  // true if node has been deleted
+
+func (t *Treedoc) newUid(uidp *Path, uidf *Path) (Path, error) {
+  newPosId := PosId{}
+  nodes := t.traverse()
+
+  // Require uidp < uidf
+  if !uidp.before(uidf) {
+    return newPosId, fmt.errorf("Treedoc::newUid() - uidp not before uidf.")
+  }
+
+
+  // TODO add the disabmiguator
+  // Check if there is a node between uidp and uidf. If so, call newUid on the
+  // leftmost node such that uidp < uidm < uidf.
+  if len(nodes) > 2 {
+    for i := 0; i < len(nodes)-2; i++ {
+      if nodes[i].Id.Path.equals(uidp.Path) {
+        if !nodes[i+1].id.Path.equals(uidf) {
+          return newUid(uidp, nodes[i+1].Id)
+        }
+      }
+    }
+  }
+
+  // TODO decide if a disabmiguator needs to be included in the PosId: if uidp is
+  // a mini-node then yes
+  switch {
+  case uidp.ancestor(uidf):
+    newPosId = PosId{append(uidp.Path, false), uidp.Site}
+  case uidf.ancestor(uidp):
+    newPosId = PosId{append(uidf.Path, true), udif.Site}
+  default:
+    newPosId = PosId{append(uidp.Path, true), uidp.Site}
+  }
+
+  return newPosId, nil
 }
+
+
+
+
+
+
+
+
+
+
+
 
 // u is a parent of v if they have the same common path and v's path is one longer
 // than u's path.
@@ -277,22 +314,21 @@ func (u *node) ancestor(v *node) bool {
 func (u *node) miniSibling(v *node) bool {
   uid := u.id
   vid := v.id
-  return uid.path.equals(&vid.path) && uid.disambiguator != vid.disambiguator
+  return uid.path.equals(&vid.path) && uid.site != vid.site
 }
 
 
-// Nodes are identified in a treedoc by their path and their disambiguator (siteId)
-type posId struct {
-  path path
-  disambiguator string
-}
+
+
+
+
 func (p *posId) before(q *posId) bool {
   u := p.path
   v := q.path
   i := u.commonPrefix(&v)
 
   // check that u != v
-  if len(u) == i && len(v) == i && p.disambiguator == q.disambiguator {
+  if len(u) == i && len(v) == i && p.site == q.site {
     return false
   }
 
@@ -309,20 +345,20 @@ func (p *posId) before(q *posId) bool {
     if u[i] == false && v[i] == true {
       return true
     }
-    if u[i] == v[i] && p.disambiguator < q.disambiguator {
+    if u[i] == v[i] && p.site < q.site {
       return true
     }
-  case len(u) == i && len(v) == i && p.disambiguator < q.disambiguator:
+  case len(u) == i && len(v) == i && p.site < q.site:
     return true
   }
 
   return false
 }
 
-// A treedoc is a binary tree so a path is a bitstring (represented as an array)
-// starting from the root where a 0 indicates a left branch and a 1 indicates a
-// right branch.
-type path []bool
+
+
+
+
 
 // Two paths are equal if they have the same length and agree in every position.
 func (p *path) equals(q *path) bool {

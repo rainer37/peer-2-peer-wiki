@@ -5,6 +5,74 @@ import (
   "fmt"
 )
 
+var lb1 = NewLocalBuffer("Test", []string{}, "127.0.0.1:2222")
+var lb2 = NewLocalBuffer("Test", []string{}, "127.0.0.1:3333")
+
+
+
+func ExampleLocalBuffer1() {
+  lb1.Insert(1, "A")
+  lb1.Insert(2, "C")
+  lb1.Insert(2, "B")
+  //lb1.Insert(1, "Z")
+  //lb1.Delete(1)
+  lb1.Print()
+  // Output:
+  //
+  // Test
+  // ----
+  // A
+  // B
+  // C
+}
+
+func ExampleLocalBuffer2() {
+  lb2.Insert(1, "Z")
+  lb2.Insert(1, "X")
+  lb2.Insert(2, "Y")
+  lb2.Print()
+  // Output:
+  //
+  // Test
+  // ----
+  // X
+  // Y
+  // Z
+}
+
+
+var sb1 = NewSharedBuffer(lb1.Title)
+func TestTreedocIsEmpty(t *testing.T) {
+  if !sb1.Hist.isEmpty() {
+    fmt.Println(sb1.Hist)
+    t.Errorf("Expected treedoc to be empty.")
+  }
+}
+func ExampleReplay_lb1_lb2() {
+  fmt.Println("********************************")
+  fmt.Println("Tree should be empty", sb1.Hist.isEmpty())
+  sb1.Replay(lb1.Log)
+  fmt.Println(sb1.Contents())
+  sb1.Replay(lb2.Log)
+  fmt.Println(sb1.Contents())
+  // Output:
+  // [A X B Y C Z]
+}
+
+// sb1.Replay(lb1.Log)
+// sb1.Replay(lb2.Log)
+// fmt.Println(sb1.Contents())
+var sb2 = NewSharedBuffer(lb1.Title)
+func ExampleReplay_lb2_lb1() {
+  //sb2.Replay(lb2.Log)
+  //sb2.Replay(lb1.Log)
+  //fmt.Println(sb2.Hist.traverse())
+  //fmt.Println(sb2.Contents())
+  // Output:
+  // [A Z]
+}
+
+
 
 // func TestTreedocInsert(t *testing.T) {
 //   // tree := &Treedoc{&[]node{node{"c",posId{path{}, "dC"},false}}, nil, nil}
@@ -59,7 +127,7 @@ import (
 // }
 
 
-
+/*
 
 var lb *LocalBuffer
 
@@ -113,3 +181,9 @@ func TestReplay(t *testing.T) {
   sb.Replay(lb.Log)
   fmt.Println(sb.Contents())
 }
+
+
+// lb2 := NewLocalBuffer("Beer", []string{}, "127.0.0.1:3333")
+// lb2.Insert(1, "This is the 2nd buffer.")
+// lb2.Insert(1, "This is the 2nd buffer again.")
+*/
