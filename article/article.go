@@ -2,6 +2,9 @@ package article
 
 import (
   "fmt"
+  "strings"
+  "io/ioutil"
+  "encoding/json"
 )
 
 // TODO Need some way to push/pull articles.
@@ -11,12 +14,21 @@ import (
 type Article struct {
   Title string
   Hist Treedoc  // The Treedoc CRDT
-  Log []OpLog  // store the local insert/delete operations to be replayed on the host
+  Log OpLog  // store the local insert/delete operations to be replayed on the host
 }
 
+// A list of insert/delete commands executed locally
+type OpLog []Operation
+
+type Operation struct {
+  Command string  // "insert" or "delete"
+  Path Path
+  Value Atom
+  Site Disambiguator
+}
 
 // Create a new empty article with specified title
-func NewArticle(title string) {
+func NewArticle(title string) *Article {
   a := Article{}
   a.Title = title
 
@@ -55,13 +67,13 @@ func PullArticle(title string, article *Article) error {
 // article to the server S. S replays C's log on the (shared) version of the article.
 func Push(remoteArticle Article, replayCount *int) error {
   // This should be exectued on the server
-  a,err := OpenArticle("../articles/", article.Title)
+  a,err := OpenArticle("../articles/", remoteArticle.Title)
   if err != nil {
     return err
   }
 
   // The replay of the client's log is executed on the server
-  return a.Replay(remoteArticle)
+  return a.Replay(remoteArticle.Log)
 }
 
 
@@ -82,40 +94,45 @@ func (a *Article) Print() {
   atoms := a.Hist.Contents()
   fmt.Printf("\n%s\n", a.Title)
   fmt.Printf("%s\n", strings.Repeat("-", len(a.Title)))
-  for _,paragraph := range atom {
+  for _,paragraph := range atoms {
     fmt.Printf("%s\n", paragraph)
   }
   fmt.Printf("\n\n")
 }
 
 func (a *Article) Insert(pos int, atom Atom, site Disambiguator) error {
-  n,err := a.Hist.Insert(pos, atom, site)
+  p,err := a.Hist.Insert(pos, atom, site)
   if err != nil {
     return err
   }
 
   // insert into log
-  a.Buffer = append(a.Log, Operation{"insert", n})
+  a.Log = append(a.Log, Operation{"insert", p, atom, site})
+
+  return nil
 }
 
 func (a *Article) Delete(pos int, site Disambiguator) error {
-  n,err := a.Hist.Delete(pos, site)
+  p,err := a.Hist.Delete(pos, site)
   if err != nil {
     return err
   }
 
-  a.Buffer = append(a.Log, Operation{"delete", n})
+  // TODO @Nick replace the empty quotes with Atom{}
+  a.Log = append(a.Log, Operation{"delete", p, "", site})
+
+  return nil
 }
 
 // Replay all commands in the buffer
 func (a *Article) Replay(remoteLog OpLog) error {
   var err error
   for _,op := range remoteLog {
-    switch op {
+    switch op.Command {
     case "insert":
-      err = a.Hist.insertNode(op.Node)
+      err = a.Hist.insertNode(op.Path, &Node{op.Value, op.Site, false, nil, nil})
     case "delete":
-      err = a.Hist.deleteNode(op.Node)
+      err = a.Hist.deleteNode(op.Path)
     default:
       return fmt.Errorf("Article::FlushBuffer() - Invalid Command.")
     }

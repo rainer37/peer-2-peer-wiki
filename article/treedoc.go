@@ -1,8 +1,8 @@
 package article
 
-import (
-  "fmt"
-)
+// import (
+//   "fmt"
+// )
 
 type Direction int8
 const (
@@ -46,14 +46,8 @@ type Path []PosId
 // A globally-unique identifier for the process making the action
 type Disambiguator string
 
-// A list of insert/delete commands executed locally
-type OpLog []Operation
 
-type Operation struct {
-  Command string  // "insert" or "delete"
-  Path Path
-  Site Disambiguator
-}
+
 
 
 
@@ -61,89 +55,107 @@ type Operation struct {
 // Walk the tree rooted at t in infix order.
 // Return the atoms of the non-tombstone nodes.
 func (t *Treedoc) Contents() []Atom {
-  var contents []Atom
+  // var contents []Atom
+  //
+  // for _, node := range t.traverseVisible() {
+  //   contents = append(contents, node.Value)
+  // }
+  //
+  // return contents
 
-  for _, node := range t.traverseVisible() {
-    contents = append(contents, node.Value)
-  }
-
-  return contents
+  // TODO
+  return []Atom{}
 }
 
 
 // Prevent a value of a node from being shown to a user.
 // Does not remove node from tree,
-func (t *Treedoc) Delete(pos int, site Disambiguator) (*Node, error) {
-  nodes := t.traverseVisible()
-  if pos > len(nodes) {
-    return fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")
-  }
-  nodes[pos-1].Tombstone = true
+func (t *Treedoc) Delete(pos int, site Disambiguator) (Path, error) {
+  // path := Path{}
+  // nodes := t.traverseVisible()
+  // if pos > len(nodes) {
+  //   return path, fmt.Errorf("Treedoc::Delete(...) - Position is invalid.")
+  // }
+  // nodes[pos-1].Tombstone = true
+  //
+  // return path, nil
 
-  return nil
+  // TODO
+  return Path{}, nil
 }
 
 
-func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (*Node, error) {
-  nodes := t.traverse()
+func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (Path, error) {
+  // pid := Path{}
+  // nodes := t.traverse()
+  //
+  // if pos > len(t.traverseVisible())+1 || pos < 0 {
+  //   return pid, fmt.Errorf("Treedoc::Insert(...) - Position is invalid.")
+  // }
+  //
+  //
+  // switch len(nodes) {
+  // case 0:  // empty tree
+  //   pid = append(pid, PosId{Empty, site})
+  // case 1:  // tree has only one node
+  //   if pos == 1 {
+  //     pid = append(pid, PosId{Left, site})
+  //   } else {
+  //     pid = append(pid, PosId{Right, site})
+  //   }
+  // default:
+  //   p,err := t.path(pos-1)
+  //   f,err := t.path(pos)
+  //   if err != nil {
+  //     return pid, fmt.Errorf("Treedoc::Insert(...) - Could not find path for given position.")
+  //   }
+  //
+  //   pid,err := t.newUid(&p, &f)
+  //   if err != nil {
+  //     return pid, fmt.Errorf("Treedoc::Insert(...) - Failed to find a path to insert.")
+  //   }
+  // }
+  //
+  // return pid, t.insertNode(pid, &Node{atom, site, false, nil, nil})
 
-  if pos > len(t.traverseVisible())+1 || pos < 0 {
-    return fmt.Errorf("Treedoc::Insert(...) - Position is invalid.")
-  }
-
-  pid := Path{}
-  switch len(nodes) {
-  case 0:  // empty tree
-    pid = append(pid, PosId{Empty, site})
-  case 1:  // tree has only one node
-    if pos == 1 {
-      pid = append(pid, PosId{Left, site})
-    } else {
-      pid = append(pid, PosId{Right, site})
-    }
-  default:
-    p,err := t.path(pos-1)
-    f,err := t.path(pos)
-    if err != nil {
-      return fmt.Errorf("Treedoc::Insert(...) - Could not find path for given position.")
-    }
-
-    pid,err := newUid(p, f)
-    if err != nil {
-      return fmt.Errorf("Treedoc::Insert(...) - Failed to find a path to insert.")
-    }
-  }
-
-  return t.insertNode(pid, &Node{atom, site, false, nil, nil})
+  // TODO
+  return Path{}, nil
 }
 
 
 func (t *Treedoc) insertNode(path Path, n *Node) error {
-  next,err := t.walk(path)
-  if err != nil {
-    return fmt.Errorf("Treedoc::insertNode(...) - Invalid path.")
-  }
+  // next,err := t.walk(path)
+  // if err != nil {
+  //   return fmt.Errorf("Treedoc::insertNode(...) - Invalid path.")
+  // }
+  //
+  // newTd := Treedoc{}
+  // newTd.MiniNodes = append(newTd.MiniNodes, n)
+  // next = &newTd
+  //
+  // return nil
 
-  newTd := Treedoc{}
-  newTd.MiniNodes = append(newTd.MiniNodes, n)
-  next = &newTd
-
+  // TODO
   return nil
 }
 
 
-func (t *Treedoc) deleteNode(path Path) {
-  n,err := t.walk(path)
-  if err != nil {
-    return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
-  }
+func (t *Treedoc) deleteNode(path Path) error {
+  // n,err := t.walk(path)
+  // if err != nil {
+  //   return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
+  // }
+  //
+  // // FIXME @Nick
+  // //n.Tombstone = true
+  //
+  // return nil
 
-  n.Tombstone = true
-
+  // TODO
   return nil
 }
-
-
+/*
+// TODO @Nick check for nil pointers while walking through tree
 func (t *Treedoc) walk(path Path) (*Treedoc, error) {
   lenP := len(path)
 
@@ -152,7 +164,8 @@ func (t *Treedoc) walk(path Path) (*Treedoc, error) {
     case p.Dir == Empty:
       for _,m := range t.MiniNodes {
         if m.Site == p.Site {
-          t = m  // change pointer from root major node to root mini-node
+          // FIXME @Nick
+          //t = m  // change pointer from root major node to root mini-node
         }
       }
     case p.Dir == Right && p.Site == "":  // right on major node
@@ -161,72 +174,76 @@ func (t *Treedoc) walk(path Path) (*Treedoc, error) {
       t = t.Left
     case p.Dir == Right:  // right on sibling node
       for _,m := range t.MiniNodes {
-        if m.Site == path.Site {
+        if m.Site == p.Site {
           t = m.Right
         }
       }
-    case path[i].Dir == Left:  // left on sibling node
+    case p.Dir == Left:  // left on sibling node
       for _,m := range t.MiniNodes {
-        if m.Site == path.Side {
+        if m.Site == p.Site {
           t = m.Left
         }
       }
     }
   }
 
-  return t
+  return t, nil
 }
 
 
+// TODO @Nick fill in
 func (t *Treedoc) path(pos int) (Path, error) {
   // translate pos (which is for visible) to infix position of all nodes
   // call infix to the limit
+  return Path{}, nil
 }
 
-
+// TODO @Nick this needs to be updated to match the interface
 // Build a list of nodes in infix order
-func (t *Treedoc) infix(p *Path, n *[]*node, depth int) {
-  if t.left != nil {
-    t.left.infix(n)
-  }
-
-  for _,m := range t.miniNodes {
-    if m.left != nil {
-      m.left.infix(n)
-    }
-
-    *n = append(*n, m)
-
-    if m.right != nil {
-      m.right.infix(n)
-    }
-  }
-
-  if t.right != nil {
-    t.right.infix(n)
-  }
+func (t *Treedoc) infix(p *Path, n *[]*Node, depth int) {
+  // if t.Left != nil {
+  //   t.Left.infix(p, n)
+  // }
+  //
+  // for _,m := range t.MiniNodes {
+  //   if m.Left != nil {
+  //     m.Left.infix(p, n)
+  //   }
+  //
+  //   *n = append(*n, m)
+  //
+  //   if m.Right != nil {
+  //     m.Right.infix(p, n)
+  //   }
+  // }
+  //
+  // if t.Right != nil {
+  //   t.Right.infix(p, n)
+  // }
 }
 
 
 func (t *Treedoc) isEmpty() bool {
-  return len(t.miniNodes) == 0
+  return len(t.MiniNodes) == 0
 }
 
 
 // Return an array of all nodes in the tree in infix order
-func (t *Treedoc) traverse() []*node {
-  var nodes []*node
-  t.infix(&nodes, -1)
+func (t *Treedoc) traverse() []*Node {
+  var path Path
+  var nodes []*Node
+  t.infix(&path, &nodes, -1)
   return nodes
 }
 
-func (t *Treedoc) traverseVisible() []*node {
-  var visNodes []*node
-  var nodes []*node
-  t.infix(&nodes)
+func (t *Treedoc) traverseVisible() []*Node {
+  var path Path
+  var visNodes []*Node
+  var nodes []*Node
+  t.infix(&path, &nodes, -1)
 
   for _,n := range nodes {
-    if !n.tombstone {
+    if !n.Tombstone {
       visNodes = append(visNodes, n)
     }
   }
@@ -244,7 +261,7 @@ func (t *Treedoc) newUid(uidp *Path, uidf *Path) (Path, error) {
 
   // Require uidp < uidf
   if !uidp.before(uidf) {
-    return newPosId, fmt.errorf("Treedoc::newUid() - uidp not before uidf.")
+    return newPosId, fmt.Errorf("Treedoc::newUid() - uidp not before uidf.")
   }
 
 
@@ -322,7 +339,7 @@ func (u *node) miniSibling(v *node) bool {
 
 
 
-func (p *posId) before(q *posId) bool {
+func (p *Path) before(q *Path) bool {
   u := p.path
   v := q.path
   i := u.commonPrefix(&v)
@@ -409,3 +426,4 @@ func (p *path) commonPrefix(q *path) int {
     return len(*q)
   }
 }
+*/

@@ -25,20 +25,22 @@ func main() {
   case "article":
     switch subCmd {
     case "pull":  // p2pwiki 127.0.0.1:2222 article pull "<title>"
-      var contents []string
       title := subArg[0]
-      hTitle := chord.Hash(title)
+      //hTitle := chord.Hash(title)
 
-      err := chord.RPCall(srvAddr, hTitle, &contents, "Pull")
+      // TODO @Nick Check that the article doesn't exist locally. If it does,
+      //      ignore the pull
+
+      article := article.NewArticle(title)
+      err := chord.RPCall(srvAddr, title, article, "PullArticle")
       if err != nil {
         // print warning re creating new article
       }
-      article := article.NewLocalBuffer(title, contents, srvAddr)
       article.Save(cacheDir)
 
     case "insert":  // p2pwiki 127.0.0.1:2222 article insert "<title>" <pos> "<text>"
       title := subArg[0]
-      article,err := article.OpenLocalBuffer(cacheDir, title)
+      article,err := article.OpenArticle(cacheDir, title)
       if err != nil {
         log.Fatal("You must first pull article.")
       }
@@ -47,8 +49,9 @@ func main() {
       if err != nil {
         log.Fatal("Invalid position parameter.")
       }
-      text := subArg[2]
-      err = article.Insert(pos, text)
+      //text := subArg[2]
+      // TODO @Nick should be Insert(pos, text, srvAddr)
+      err = article.Insert(pos, "", "")
       if err != nil {
         log.Fatal("Failed to insert paragraph.")
       }
@@ -56,7 +59,7 @@ func main() {
 
     case "delete":  // p2pwiki 127.0.0.1:2222 article delete "<title>" <pos>
       title := subArg[0]
-      article,err := article.OpenLocalBuffer(cacheDir, title)
+      article,err := article.OpenArticle(cacheDir, title)
       if err != nil {
         log.Fatal("You must first pull article.")
       }
@@ -66,7 +69,8 @@ func main() {
         log.Fatal("Invalid position parameter.")
       }
 
-      err = article.Delete(pos)
+      // TODO @Nick should be Delete(pos, srvAddr)
+      err = article.Delete(pos, "")
       if err != nil {
         log.Fatal("Failed to delete paragraph.")
       }
@@ -75,27 +79,30 @@ func main() {
     case "push":  // p2pwiki 127.0.0.1:2222 article push "<title>"
       title := subArg[0]
 
-      article,err := article.OpenLocalBuffer(cacheDir, title)
+      a,err := article.OpenArticle(cacheDir, title)
       if err != nil {
         log.Fatal("You must first pull article.")
       }
-
-      // Send the operations log to the server. Retry sending unsuccessful operations
-      // until all operations have go through.
-      expectCount := len(article.Log.Operations)
       replayCount := 0
-      for expectCount > replayCount {
-        chord.RPCall(srvAddr, article.Log, &replayCount, "Push")
-        err = article.Log.Remove(replayCount)
-        if err != nil {
-          log.Fatal("Unexpected error encountered while sending changes to server.")
-        }
-      }
+      chord.RPCall(srvAddr, a.Log, &replayCount, "PushArticle")
 
-      article.Save(cacheDir)
+      // NOTE Ignore below for now
+      // // Send the operations log to the server. Retry sending unsuccessful operations
+      // // until all operations have go through.
+      // expectCount := len(a.Log)
+      // replayCount := 0
+      // for expectCount > replayCount {
+      //   chord.RPCall(srvAddr, a.Log, &replayCount, "PushArticle")
+      //   err = a.Log.Remove(replayCount)
+      //   if err != nil {
+      //     log.Fatal("Unexpected error encountered while sending changes to server.")
+      //   }
+      // }
+
+      a.Save(cacheDir)
     case "view":
       title := subArg[0]
-      article,err := article.OpenLocalBuffer(cacheDir, title)
+      article,err := article.OpenArticle(cacheDir, title)
       if err != nil {
         log.Fatal("You must first pull article.")
       }
