@@ -28,16 +28,19 @@ func main() {
       title := subArg[0]
       //hTitle := chord.Hash(title)
 
-      // TODO @Nick Check that the article doesn't exist locally. If it does,
-      //      ignore the pull
+      _,err := article.OpenArticle(cacheDir, title)
 
-      article := article.NewArticle(title)
-      err := chord.RPCall(srvAddr, title, article, "PullArticle")
-      if err != nil {
-        // print warning re creating new article
+      // Check if the article is already in the local cache
+      if err == nil {
+        a := article.NewArticle(title)
+        err := chord.RPCall(srvAddr, title, a, "PullArticle")
+        if err != nil {
+          // print warning re creating new article
+        }
+        a.Save(cacheDir)
+      } else {
+        log.Fatal("You already have this article.")
       }
-      article.Save(cacheDir)
-
     case "insert":  // p2pwiki 127.0.0.1:2222 article insert "<title>" <pos> "<text>"
       title := subArg[0]
       article,err := article.OpenArticle(cacheDir, title)
@@ -49,9 +52,8 @@ func main() {
       if err != nil {
         log.Fatal("Invalid position parameter.")
       }
-      //text := subArg[2]
-      // TODO @Nick should be Insert(pos, text, srvAddr)
-      err = article.Insert(pos, "", "")
+
+      err = article.Insert(pos, subArg[2], srvAddr)
       if err != nil {
         log.Fatal("Failed to insert paragraph.")
       }
@@ -69,8 +71,7 @@ func main() {
         log.Fatal("Invalid position parameter.")
       }
 
-      // TODO @Nick should be Delete(pos, srvAddr)
-      err = article.Delete(pos, "")
+      err = article.Delete(pos, srvAddr)
       if err != nil {
         log.Fatal("Failed to delete paragraph.")
       }

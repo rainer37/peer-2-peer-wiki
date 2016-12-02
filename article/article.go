@@ -7,10 +7,6 @@ import (
   "encoding/json"
 )
 
-// TODO Need some way to push/pull articles.
-
-
-
 type Article struct {
   Title string
   Hist Treedoc  // The Treedoc CRDT
@@ -45,7 +41,7 @@ func OpenArticle(path string, title string) (*Article, error) {
 
 
 // NOTE @Rain This will be an RPC
-// updates the artivle param to point to the article with the soecified title
+// updates the article param to point to the article with the soecified title
 func PullArticle(title string, article *Article) error {
   // This executes on the server using the title requested by the client
   a,err := OpenArticle("../articles/", title)
@@ -100,26 +96,26 @@ func (a *Article) Print() {
   fmt.Printf("\n\n")
 }
 
-func (a *Article) Insert(pos int, atom Atom, site Disambiguator) error {
-  p,err := a.Hist.Insert(pos, atom, site)
+func (a *Article) Insert(pos int, atom string, site string) error {
+  p,err := a.Hist.Insert(pos, Atom(atom), Disambiguator(site))
   if err != nil {
     return err
   }
 
   // insert into log
-  a.Log = append(a.Log, Operation{"insert", p, atom, site})
+  a.Log = append(a.Log, Operation{"insert", p, Atom(atom), Disambiguator(site)})
 
   return nil
 }
 
-func (a *Article) Delete(pos int, site Disambiguator) error {
-  p,err := a.Hist.Delete(pos, site)
+func (a *Article) Delete(pos int, site string) error {
+  p,err := a.Hist.Delete(pos, Disambiguator(site))
   if err != nil {
     return err
   }
 
-  // TODO @Nick replace the empty quotes with Atom{}
-  a.Log = append(a.Log, Operation{"delete", p, "", site})
+  var empty Atom
+  a.Log = append(a.Log, Operation{"delete", p, empty, Disambiguator(site)})
 
   return nil
 }
