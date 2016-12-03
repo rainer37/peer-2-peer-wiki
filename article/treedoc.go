@@ -147,9 +147,6 @@ func (t *Treedoc) insertNode(path Path, n *Node) error {
 // Last position in path must have disabmiguator
 func (t *Treedoc) deleteNode(path Path) error {
   n := t.walk(path)
-  // if err != nil {
-  //   return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
-  // }
 
   site := path[len(path)-1].Site
   for _,m := range (*n).MiniNodes {
@@ -160,102 +157,6 @@ func (t *Treedoc) deleteNode(path Path) error {
 
   return nil
 }
-
-// // TODO @Nick check for nil pointers while walking through tree
-// // Will return a pointer to the last major node
-// func (t *Treedoc) walk(path Path) (*Treedoc, error) {
-//   if len(p) == 0 || (len(p) == 1 && p[0].Dir == Empty) {
-//     return t
-//   }
-//
-//   for _,p := range path {
-//     switch {
-//     case p.Dir == Empty:
-//       for _,m := range t.MiniNodes {
-//         if m.Site == p.Site {
-//           // FIXME @Nick
-//           t = m  // change pointer from root major node to root mini-node
-//         }
-//       }
-//     case p.Dir == Right && p.Site == "":  // right on major node
-//       t = t.Right
-//     case p.Dir == Left && p.Site == "":  // left on major node
-//       t = t.Left
-//     case p.Dir == Right:  // right on sibling node
-//       for _,m := range t.MiniNodes {
-//         if m.Site == p.Site {
-//           t = m.Right
-//         }
-//       }
-//     case p.Dir == Left:  // left on sibling node
-//       for _,m := range t.MiniNodes {
-//         if m.Site == p.Site {
-//           t = m.Left
-//         }
-//       }
-//     }
-//   }
-//
-//   return t, nil
-// }
-
-
-// func (t *Treedoc) walk(path Path) (**Treedoc, error) {
-//   //s := t
-//   if len(path) == 0 || (len(path) == 1 && path[0].Dir == Empty) {
-//     return &t, nil
-//   }
-//
-//   // Ignore disambiguator for the last element   path[len(path)-1].Site = "kkk"
-//
-//   for i,p := range path[:len(path)-1] {
-//     if i > 0 && path[i-1].Site != "" {
-//       for _,m := range t.MiniNodes {
-//         if m.Site == path[i-1].Site {
-//           switch {
-//           case p.Dir == Left:
-//             t = m.Left
-//           case p.Dir == Right:
-//             t = m.Right
-//           }
-//         }
-//       }
-//     } else {
-//       switch {
-//       case p.Dir == Left:
-//         fmt.Println("LEFT")
-//         t = t.Left
-//       case p.Dir == Right:
-//         fmt.Println("RIGHT")
-//         t = t.Right
-//       }
-//     }
-//   }
-//
-//
-//     if path[len(path)-2].Site != "" {
-//       for _,m := range t.MiniNodes {
-//         if m.Site == path[len(path)-2].Site {
-//           if path[len(path)-1].Dir == Left {
-//             fmt.Println("Returning mininode LEFT", m)
-//             return &m.Left, nil
-//           } else {
-//             return &m.Right, nil
-//           }
-//         }
-//       }
-//     } else {
-//
-//     switch path[len(path)-1].Dir {
-//     case Left:
-//       fmt.Println("Returning LEFT")
-//       return &t.Left, nil
-//     case Right:
-//       return &t.Right, nil
-//     }
-//   }
-//   return &t, nil
-// }
 
 func (t *Treedoc) walk(path Path) **Treedoc {
   pLen := len(path)
@@ -317,11 +218,9 @@ func (t *Treedoc) walk(path Path) **Treedoc {
 // TODO @Nick this needs to be updated to match the interface
 // Build a list of nodes in infix order
 func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
-  //fmt.Println(paths)
-  if t.Left != nil {
-    var site Disambiguator
-    t.Left.infix(append(p, PosId{Left, site}), paths, n)
 
+  if t.Left != nil {
+    t.Left.infix(append(p, PosId{Left, ""}), paths, n)
   }
 
   for _,m := range t.MiniNodes {
@@ -333,50 +232,19 @@ func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
     *n = append(*n, m)
 
     //fmt.Println("Site is ", m.Site, m.Value)
-    var s Disambiguator
-    if len(t.MiniNodes) > 1 {
-      s = m.Site
-    }
+    // var s Disambiguator
+    // if len(t.MiniNodes) > 1 {
+    //   s = m.Site
+    // }
 
     if len(p) >= 1 {
-      p[len(p)-1].Site = s
-      // fmt.Println("Appending site", p)
-      q := Path{}
-      q = p
-      //copy(q, p)
-      *paths = append(*paths, q)
+      if m.Right != nil {
+        p[len(p)-1].Site = m.Site
+      }
+      *paths = append(*paths, p)
     } else {
-      //fmt.Println("Appending path", p)
-      //p = append(p,PosId{Empty, site})
-      *paths = append(*paths, append(p, PosId{Empty, s}))
+      *paths = append(*paths, append(p, PosId{Empty, m.Site}))
     }
-
-    // var site Disambiguator
-    // if len(t.MiniNodes) > 1 {
-    //   site = m.Site
-    // }
-    //
-    // if len(p) > 1 {
-    //   p[len(p)-1].Site = site
-    //   *paths = append(*paths, p)
-    // } else {
-    //   *paths = append(*paths, append(p, PosId{Empty, site}))
-    // }
-
-
-
-
-    // if len(t.MiniNodes) > 1 {  // Annotate position with disambiguator
-    //   if len(p) == 0 {
-    //     //p = append(p, PosId{Empty, m.Site})
-    //     *paths = append(*paths, append(p, PosId{Empty, m.Site}))
-    //   } else {
-    //   //p[len(p)-1].Site = m.Site
-    // }
-    // } else {
-    //   *paths = append(*paths, p)
-    // }
-
 
 
 
@@ -384,10 +252,14 @@ func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
       m.Right.infix(append(p, PosId{Right, m.Site}), paths, n)
     }
   }
+  // if len(p) > 0 {
+  //   p[len(p)-1].Site = ""
+  // }
 
   if t.Right != nil {
-    var site Disambiguator
-    t.Right.infix(append(p, PosId{Right, site}), paths, n)
+
+
+    t.Right.infix(append(p, PosId{Right, ""}), paths, n)
   }
 }
 
