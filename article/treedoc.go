@@ -120,31 +120,65 @@ func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (Path, error) {
 
 
 func (t *Treedoc) insertNode(path Path, n *Node) error {
-  // next,err := t.walk(path)
-  // if err != nil {
-  //   return fmt.Errorf("Treedoc::insertNode(...) - Invalid path.")
-  // }
+  next,err := t.walk(path)
+  if err != nil {
+    return fmt.Errorf("Treedoc::insertNode(...) - Invalid path.")
+  }
+
+// oldNext := next
+//   t = t.Left
+//   t = t.Left
+//   next = &t.Right
+//
+//   fmt.Printf("%p\n%p\n",oldNext,next)
+//
+//   *next = &Treedoc{}
+//   (*next).MiniNodes = append((*next).MiniNodes, n)
+//   fmt.Println(t.Contents())
+
+  if *next == nil {
+    *next = &Treedoc{}
+  }
   //
-  // newTd := Treedoc{}
-  // newTd.MiniNodes = append(newTd.MiniNodes, n)
-  // next = &newTd
+  // // TODO @Nick insert in correct position
+  (*next).MiniNodes = append((*next).MiniNodes, n)
+  // fmt.Println((*next).MiniNodes[0])
+  //
+  // y,err := t.walk(Path{PosId{Left,""},PosId{Left,""}})
+  // fmt.Println((*y).MiniNodes[0])
+  //
+  // fmt.Println(t.Contents())
+
+/*
+  if *next == nil {
+    newTd := Treedoc{}
+    newTd.MiniNodes = append(newTd.MiniNodes, n)
+    fmt.Printf("%p\n", &newTd)
+    fmt.Printf("%p\n", next)
+    *next = &newTd
+  } else {
+    // TODO @Nick insert in correct position
+    (*next).MiniNodes = append((*next).MiniNodes, n)
+  }
+*/
 
   return nil
 }
 
-
+// Last position in path must have disabmiguator
 func (t *Treedoc) deleteNode(path Path) error {
-  // n,err := t.walk(path)
-  // if err != nil {
-  //   return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
-  // }
-  //
-  // // FIXME @Nick
-  // //n.Tombstone = true
-  //
-  // return nil
+  n,err := t.walk(path)
+  if err != nil {
+    return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
+  }
 
-  // TODO
+  site := path[len(path)-1].Site
+  for _,m := range (*n).MiniNodes {
+    if m.Site == site {
+      m.Tombstone = true
+    }
+  }
+
   return nil
 }
 
@@ -187,15 +221,15 @@ func (t *Treedoc) deleteNode(path Path) error {
 // }
 
 
-func (t *Treedoc) walk(path Path) (*Treedoc, error) {
+func (t *Treedoc) walk(path Path) (**Treedoc, error) {
+  //s := t
   if len(path) == 0 || (len(path) == 1 && path[0].Dir == Empty) {
-    return t, nil
+    return &t, nil
   }
 
-  // Ignore disambiguator for the last element
-  path[len(path)-1].Site = ""
+  // Ignore disambiguator for the last element   path[len(path)-1].Site = "kkk"
 
-  for i,p := range path {
+  for i,p := range path[:len(path)-1] {
     if i > 0 && path[i-1].Site != "" {
       for _,m := range t.MiniNodes {
         if m.Site == path[i-1].Site {
@@ -210,14 +244,38 @@ func (t *Treedoc) walk(path Path) (*Treedoc, error) {
     } else {
       switch {
       case p.Dir == Left:
+        fmt.Println("LEFT")
         t = t.Left
       case p.Dir == Right:
+        fmt.Println("RIGHT")
         t = t.Right
       }
     }
   }
 
-  return t, nil
+
+    if path[len(path)-2].Site != "" {
+      for _,m := range t.MiniNodes {
+        if m.Site == path[len(path)-2].Site {
+          if path[len(path)-1].Dir == Left {
+            fmt.Println("Returning mininode LEFT", m)
+            return &m.Left, nil
+          } else {
+            return &m.Right, nil
+          }
+        }
+      }
+    } else {
+
+    switch path[len(path)-1].Dir {
+    case Left:
+      fmt.Println("Returning LEFT")
+      return &t.Left, nil
+    case Right:
+      return &t.Right, nil
+    }
+  }
+  return &t, nil
 }
 
 
@@ -231,7 +289,7 @@ func (t *Treedoc) walk(path Path) (*Treedoc, error) {
 // TODO @Nick this needs to be updated to match the interface
 // Build a list of nodes in infix order
 func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
-  fmt.Println(paths)
+  //fmt.Println(paths)
   if t.Left != nil {
     var site Disambiguator
     t.Left.infix(append(p, PosId{Left, site}), paths, n)
@@ -254,7 +312,7 @@ func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
 
     if len(p) >= 1 {
       p[len(p)-1].Site = s
-      fmt.Println("Appending site", p)
+      // fmt.Println("Appending site", p)
       q := Path{}
       q = p
       //copy(q, p)
