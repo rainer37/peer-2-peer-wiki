@@ -120,57 +120,36 @@ func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (Path, error) {
 
 
 func (t *Treedoc) insertNode(path Path, n *Node) error {
-  next,err := t.walk(path)
-  if err != nil {
-    return fmt.Errorf("Treedoc::insertNode(...) - Invalid path.")
-  }
-
-// oldNext := next
-//   t = t.Left
-//   t = t.Left
-//   next = &t.Right
-//
-//   fmt.Printf("%p\n%p\n",oldNext,next)
-//
-//   *next = &Treedoc{}
-//   (*next).MiniNodes = append((*next).MiniNodes, n)
-//   fmt.Println(t.Contents())
+  next := t.walk(path)
+  inserted := false
 
   if *next == nil {
     *next = &Treedoc{}
-  }
-  //
-  // // TODO @Nick insert in correct position
-  (*next).MiniNodes = append((*next).MiniNodes, n)
-  // fmt.Println((*next).MiniNodes[0])
-  //
-  // y,err := t.walk(Path{PosId{Left,""},PosId{Left,""}})
-  // fmt.Println((*y).MiniNodes[0])
-  //
-  // fmt.Println(t.Contents())
-
-/*
-  if *next == nil {
-    newTd := Treedoc{}
-    newTd.MiniNodes = append(newTd.MiniNodes, n)
-    fmt.Printf("%p\n", &newTd)
-    fmt.Printf("%p\n", next)
-    *next = &newTd
   } else {
-    // TODO @Nick insert in correct position
+    for i,m := range (*next).MiniNodes {
+      if m.Site > n.Site {
+        inserted = true
+        (*next).MiniNodes = append((*next).MiniNodes, nil)
+        copy((*next).MiniNodes[i+1:], (*next).MiniNodes[i:])
+        (*next).MiniNodes[i] = n
+        break
+      }
+    }
+  }
+
+  if !inserted {
     (*next).MiniNodes = append((*next).MiniNodes, n)
   }
-*/
 
   return nil
 }
 
 // Last position in path must have disabmiguator
 func (t *Treedoc) deleteNode(path Path) error {
-  n,err := t.walk(path)
-  if err != nil {
-    return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
-  }
+  n := t.walk(path)
+  // if err != nil {
+  //   return fmt.Errorf("Treedoc::deleteNode(...) - Invalid path.")
+  // }
 
   site := path[len(path)-1].Site
   for _,m := range (*n).MiniNodes {
@@ -221,70 +200,119 @@ func (t *Treedoc) deleteNode(path Path) error {
 // }
 
 
-func (t *Treedoc) walk(path Path) (**Treedoc, error) {
-  //s := t
-  if len(path) == 0 || (len(path) == 1 && path[0].Dir == Empty) {
-    return &t, nil
+// func (t *Treedoc) walk(path Path) (**Treedoc, error) {
+//   //s := t
+//   if len(path) == 0 || (len(path) == 1 && path[0].Dir == Empty) {
+//     return &t, nil
+//   }
+//
+//   // Ignore disambiguator for the last element   path[len(path)-1].Site = "kkk"
+//
+//   for i,p := range path[:len(path)-1] {
+//     if i > 0 && path[i-1].Site != "" {
+//       for _,m := range t.MiniNodes {
+//         if m.Site == path[i-1].Site {
+//           switch {
+//           case p.Dir == Left:
+//             t = m.Left
+//           case p.Dir == Right:
+//             t = m.Right
+//           }
+//         }
+//       }
+//     } else {
+//       switch {
+//       case p.Dir == Left:
+//         fmt.Println("LEFT")
+//         t = t.Left
+//       case p.Dir == Right:
+//         fmt.Println("RIGHT")
+//         t = t.Right
+//       }
+//     }
+//   }
+//
+//
+//     if path[len(path)-2].Site != "" {
+//       for _,m := range t.MiniNodes {
+//         if m.Site == path[len(path)-2].Site {
+//           if path[len(path)-1].Dir == Left {
+//             fmt.Println("Returning mininode LEFT", m)
+//             return &m.Left, nil
+//           } else {
+//             return &m.Right, nil
+//           }
+//         }
+//       }
+//     } else {
+//
+//     switch path[len(path)-1].Dir {
+//     case Left:
+//       fmt.Println("Returning LEFT")
+//       return &t.Left, nil
+//     case Right:
+//       return &t.Right, nil
+//     }
+//   }
+//   return &t, nil
+// }
+
+func (t *Treedoc) walk(path Path) **Treedoc {
+  pLen := len(path)
+
+  if pLen == 0 || pLen == 1 && path[0].Dir == Empty {
+    return &t
   }
 
-  // Ignore disambiguator for the last element   path[len(path)-1].Site = "kkk"
-
-  for i,p := range path[:len(path)-1] {
-    if i > 0 && path[i-1].Site != "" {
+  // Walk the path
+  for i,p := range path[:pLen-1] {
+    switch {
+    case i > 0 && path[i-1].Site != "":
       for _,m := range t.MiniNodes {
         if m.Site == path[i-1].Site {
-          switch {
-          case p.Dir == Left:
+          switch p.Dir {
+          case Left:
             t = m.Left
-          case p.Dir == Right:
+          case Right:
             t = m.Right
           }
         }
       }
-    } else {
-      switch {
-      case p.Dir == Left:
-        fmt.Println("LEFT")
+    default:
+      switch p.Dir {
+      case Left:
         t = t.Left
-      case p.Dir == Right:
-        fmt.Println("RIGHT")
+      case Right:
         t = t.Right
       }
     }
   }
 
-
-    if path[len(path)-2].Site != "" {
-      for _,m := range t.MiniNodes {
-        if m.Site == path[len(path)-2].Site {
-          if path[len(path)-1].Dir == Left {
-            fmt.Println("Returning mininode LEFT", m)
-            return &m.Left, nil
-          } else {
-            return &m.Right, nil
-          }
+  // Set the return pointer
+  switch {
+  case path[pLen-2].Site != "":
+    for _,m := range t.MiniNodes {
+      if m.Site == path[pLen-2].Site {
+        switch path[pLen-1].Dir {
+        case Left:
+          return &m.Left
+        case Right:
+          return &m.Right
         }
       }
-    } else {
-
-    switch path[len(path)-1].Dir {
+    }
+  default:
+    switch path[pLen-1].Dir {
     case Left:
-      fmt.Println("Returning LEFT")
-      return &t.Left, nil
+      return &t.Left
     case Right:
-      return &t.Right, nil
+      return &t.Right
     }
   }
-  return &t, nil
+  return nil // not called
 }
 
 
-// // TODO @Nick fill in
-// func (t *Treedoc) path(pos int) (Path, error) {
-//   // translate pos (which is for visible) to infix position of all nodes
-//   // call infix to the limit
-//   return Path{}, nil
-// }
 
 // TODO @Nick this needs to be updated to match the interface
 // Build a list of nodes in infix order
