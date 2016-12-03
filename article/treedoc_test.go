@@ -42,6 +42,25 @@ import (
 
 
 var t Treedoc
+
+// func ExampleInfix() {
+//   nodeA := Node{"A", "dA", false, nil, nil}
+//   nodeC := Node{"C", "dB", false, nil, nil}
+//   t.MiniNodes = append(t.MiniNodes, &nodeA)
+//
+//   t1 := Treedoc{}
+//   t1.MiniNodes = append(t1.MiniNodes, &nodeC)
+//   t.Right = &t1
+//   var paths []Path
+//   var nodes []*Node
+//   t.infix(Path{}, &paths, &nodes)
+//   fmt.Println(t.Contents())
+//   for _,path := range paths {
+//     fmt.Println(path.String())
+//   }
+//   // Output:
+// }
+
 func ConstructTreeManually() {
   nodeA := Node{"A", "dA", false, nil, nil}
   nodeC := Node{"C", "dB", false, nil, nil}
@@ -87,7 +106,6 @@ func ConstructTreeManually() {
 
 func ExampleContents() {
   ConstructTreeManually()
-  fmt.Println(t)
   var paths []Path
   var nodes []*Node
   t.infix(Path{}, &paths, &nodes)
@@ -101,24 +119,24 @@ func ExampleContents() {
 }
 
 
-func ExampleWalk() {
-  ConstructTreeManually()
-  pA := Path{PosId{Left, ""}, PosId{Left, ""}}
-  // pB := Path{PosId{Left, "dA"}}
-  // pC := Path{PosId{Left, "dA"}, PosId{Right, ""}}
-  // pD := Path{PosId{Left, "dB"}}
-  // pE := Path{PosId{Left, ""}, PosId{Right, ""}}
-  // pF := Path{PosId{Empty, "dA"}}
-  // pG := Path{PosId{Empty, "dA"}, PosId{Right, ""}}
-  // pH := Path{PosId{Empty, "dB"}, PosId{Left, ""}}
-  // pI := Path{PosId{Empty, "dB"}}
-  // pJ := Path{PosId{Right, ""}}
-  r := t.walk(pA)
-  fmt.Println((*r).MiniNodes[0].Value)
-  fmt.Println(t.traverse())
-
-  //Output:
-}
+// func ExampleWalk() {
+//   ConstructTreeManually()
+//   pA := Path{PosId{Left, ""}, PosId{Left, ""}}
+//   // pB := Path{PosId{Left, "dA"}}
+//   // pC := Path{PosId{Left, "dA"}, PosId{Right, ""}}
+//   // pD := Path{PosId{Left, "dB"}}
+//   // pE := Path{PosId{Left, ""}, PosId{Right, ""}}
+//   // pF := Path{PosId{Empty, "dA"}}
+//   // pG := Path{PosId{Empty, "dA"}, PosId{Right, ""}}
+//   // pH := Path{PosId{Empty, "dB"}, PosId{Left, ""}}
+//   // pI := Path{PosId{Empty, "dB"}}
+//   // pJ := Path{PosId{Right, ""}}
+//   r := t.walk(pA)
+//   fmt.Println((*r).MiniNodes[0].Value)
+//   fmt.Println(t.traverse())
+//
+//   //Output:
+// }
 
 // func ExampleInsertNode() {
 //

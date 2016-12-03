@@ -218,50 +218,175 @@ func (t *Treedoc) walk(path Path) **Treedoc {
 // TODO @Nick this needs to be updated to match the interface
 // Build a list of nodes in infix order
 func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
+fmt.Printf("Infix(%v, %v)\n", p, paths)
+
+  b := make(Path, len(p))
+  copy(b, p)
 
   if t.Left != nil {
-    t.Left.infix(append(p, PosId{Left, ""}), paths, n)
+    b = append(p, PosId{Left, ""})
+    t.Left.infix(b, paths, n)
   }
 
   for _,m := range t.MiniNodes {
+    c := make(Path, len(p))
+    copy(c, p)
+
+    if len(c) == 0 {
+      if len(t.MiniNodes) > 1 {
+        c = append(p, PosId{Empty, m.Site})
+      } else {
+        c = append(p, PosId{Empty, ""})
+      }
+    }
+    //  var site Disambiguator
+    // // // Check if this is a disambiguated mini-node
+    // if len(t.MiniNodes) > 1 {
+    //   if len(c) > 1 {
+    //     c[len(c)-1].Site = m.Site
+    //   } else {
+    //     c[0].Site = m.Site
+    //   }
+    //
+    //   //site = m.Site
+    //   //fmt.Println("Should append disambiguator ", m.Site, p)
+    // }
+    // //
+    // // // Check if this is a leaf node
+    // if t.Left == nil && t.Right == nil || len(t.MiniNodes) > 1 {
+    //   fmt.Println("Should APPEND disambiguator ", m.Site, p)
+    //   site = m.Site
+    // }
+
+
     if m.Left != nil {
-      m.Left.infix(append(p, PosId{Left, m.Site}), paths, n)
+
+      b = append(c, PosId{Left, m.Site})
+      if len(t.MiniNodes) > 1 {
+        if len(b) > 1 {
+        b[len(b)-2].Site = m.Site
+      }
+      }
+      m.Left.infix(b, paths, n)
     }
 
 
     *n = append(*n, m)
 
-    //fmt.Println("Site is ", m.Site, m.Value)
-    // var s Disambiguator
-    // if len(t.MiniNodes) > 1 {
-    //   s = m.Site
+
+    // if need disambiguate root:
+    // if len(p) == 0 {
+    //    c = append(p, PosId{Empty, m.Site})
+    //  }
+     if len(c) >= 1 {
+       c[len(c)-1].Site = m.Site
+     }
+    // if len(p) >= 1 {
+    //    //p[len(p)-1].Site = site
+    //    //fmt.Println("Path is", b)
+    //
+    //
+    //    c[len(c)-1].Site = m.Site
+    //   *paths = append(*paths, c)
+    // } else {
+    //   *paths = append(*paths, append(c, PosId{Empty, m.Site}))
     // }
-
-    if len(p) >= 1 {
-      if m.Right != nil {
-        p[len(p)-1].Site = m.Site
-      }
-      *paths = append(*paths, p)
-    } else {
-      *paths = append(*paths, append(p, PosId{Empty, m.Site}))
-    }
-
+*paths = append(*paths, c)
 
 
     if m.Right != nil {
-      m.Right.infix(append(p, PosId{Right, m.Site}), paths, n)
+      b = append(c, PosId{Right, m.Site})
+      if len(t.MiniNodes) > 1 {
+        if len(b) > 1 {
+        b[len(b)-2].Site = m.Site
+      }
+      }
+      m.Right.infix(b, paths, n)
     }
   }
+
+
+
   // if len(p) > 0 {
   //   p[len(p)-1].Site = ""
   // }
 
   if t.Right != nil {
 
+    // if len(b) > 0 {
+    //    b[len(b)-1].Site = ""
+    // }
 
-    t.Right.infix(append(p, PosId{Right, ""}), paths, n)
+    //fmt.Println("Path is ", b, t.Right.MiniNodes[0].Value)
+    b = append(p, PosId{Right, ""})
+    t.Right.infix(b, paths, n)
   }
 }
+
+
+// func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
+//   b := make(Path, len(p))
+//   copy(b, p)
+//   fmt.Printf("Infix(%v, %v, %v)\n", p, paths, n)
+//   if t.Left != nil {
+//     t.Left.infix(append(b, PosId{Left, ""}), paths, n)
+//   }
+//
+//   for _,m := range t.MiniNodes {
+//
+//     var site Disambiguator
+//     // Check if this is a disambiguated mini-node
+//     if len(t.MiniNodes) > 1 {
+//       site = m.Site
+//     }
+//
+//     // Check if this is a leaf node
+//     if t.Left == nil && t.Right == nil {
+//       site = m.Site
+//     }
+//
+//
+//     if m.Left != nil {
+//       m.Left.infix(append(b, PosId{Left, m.Site}), paths, n)
+//     }
+//
+//
+//     *n = append(*n, m)
+//
+//     if len(b) >= 1 {
+//        b[len(b)-1].Site = site
+//        //fmt.Println("Path is", b)
+//       *paths = append(*paths, b)
+//     } else {
+//       *paths = append(*paths, append(b, PosId{Empty, m.Site}))
+//     }
+//
+//
+//
+//     if m.Right != nil {
+//       m.Right.infix(append(b, PosId{Right, m.Site}), paths, n)
+//     }
+//   }
+//
+//
+//
+//   // if len(p) > 0 {
+//   //   p[len(p)-1].Site = ""
+//   // }
+//
+//   if t.Right != nil {
+//
+//     // if len(b) > 0 {
+//     //    b[len(b)-1].Site = ""
+//     // }
+//
+//     //fmt.Println("Path is ", b, t.Right.MiniNodes[0].Value)
+//     t.Right.infix(append(b, PosId{Right, ""}), paths, n)
+//   }
+// }
+
+
+
 
 
 func (t *Treedoc) isEmpty() bool {
