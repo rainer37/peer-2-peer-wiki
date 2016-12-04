@@ -93,6 +93,7 @@ func ConstructTreeManually() {
 
 
   t7 := Treedoc{}
+  //nodeZ := Node{"Z", "dZ", false, nil, nil}
   t7.MiniNodes = append(t7.MiniNodes, &nodeB, &nodeD)
   t7.Left = &t1
   t7.Right = &t3
@@ -106,17 +107,50 @@ func ConstructTreeManually() {
 
 func ExampleContents() {
   ConstructTreeManually()
-  var paths []Path
-  var nodes []*Node
-  t.infix(Path{}, &paths, &nodes)
+
+
+  //fmt.Println(t.Contents())
+
+  //t.insertNode(Path{PosId{Left,"dA"},PosId{Right,""},PosId{Left,"dA"}}, &Node{"X", "dA", false, nil, nil})
+  //t.insertNode(Path{PosId{Left,"dA"},PosId{Right,""},PosId{Left,""}, PosId{Right, "dY"}}, &Node{"Y", "dA", false, nil, nil})
+  //t.insertNode(Path{PosId{Empty,"dA"}, PosId{Right, ""}, PosId{Right,"dG"}}, &Node{"Z", "dG", false, nil, nil})
+  // t.Insert(2, "X", "dX")
+  //t.insertNode(Path{PosId{Empty, "dX"}}, &Node{"X", "dX", false, nil, nil})
+  //t.insertNode(Path{PosId{Left,"dA"},PosId{Right,"dB"},PosId{Right,"dX"}},&Node{"X", "dX", false, nil, nil})
+
+  // var paths []Path
+  // var nodes []*Node
+  // t.infix(Path{}, &paths, &nodes)
+  // for _,path := range paths {
+  //   fmt.Println(path.String())
+  //   //fmt.Println(path)
+  // }
+  //fmt.Println(t.walk(Path{PosId{Left,""}, PosId{Left, ""}, PosId{Left, ""}}))
+
+  t.Insert(11, "X", "dX")
+  // p := t.walk(Path{PosId{Left, ""},PosId{Right, ""},PosId{Right,"dX"}})
+  // fmt.Println(*p)
   fmt.Println(t.Contents())
-  for _,path := range paths {
-    fmt.Println(path.String())
-    //fmt.Println(path)
-  }
   // Output:
 
 }
+
+
+// func ExampleMiniNodePos() {
+//   pos,isLast := t.miniNodePos(Path{PosId{Empty,"dZ"}})
+//   switch {
+//   case pos == 0 && isLast:
+//     fmt.Println("Only node")
+//   case pos == 0:
+//     fmt.Println("Left most node")
+//   case isLast:
+//     fmt.Println("Right most node")
+//   default:
+//     fmt.Println("Middle node at pos", pos)
+//   }
+//   //Output:
+// }
+
 
 
 // func ExampleWalk() {
@@ -158,4 +192,24 @@ func ExampleContents() {
 //   t.deleteNode(p)
 //   fmt.Println(t.Contents())
 //   // Output:
+// }
+
+
+// func ExampleEmptyTree() {
+//   r := Treedoc{}
+//   r.Insert(1, "Hello", "dA")
+//   r.Insert(1, "Something", "dA")
+//   r.Insert(2, "Goodbye", "dA")
+//   fmt.Println(r.Contents())
+//   // output:
+// }
+//
+// func ExampleConcurrent() {
+//   r := Treedoc{}
+//   r.Insert(1, "Hello", "dA")
+//   r.Insert(1, "Something", "dA")
+//   r.Insert(2, "Goodbye", "dA")
+//   r.insertNode(Path{PosId{Empty,"d"}}, &Node{"Ducue", "d", false, nil, nil})
+//   fmt.Println(r.Contents())
+//   // output:
 // }

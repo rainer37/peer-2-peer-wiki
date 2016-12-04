@@ -82,12 +82,47 @@ func (t *Treedoc) Delete(pos int, site Disambiguator) (Path, error) {
 
 func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (Path, error) {
   pid := Path{}
-  vpaths,vnodes := t.traverseVisible()
-  _,nodes := t.traverse()
+  vpaths,_ := t.traverseVisible()
+  paths,nodes := t.traverse()
 
-  if pos > len(vnodes)+1 || pos < 0 {
-    return pid, fmt.Errorf("Treedoc::Insert(...) - Position is invalid.")
+
+  switch {
+  case len(nodes) == 0:  // empty tree
+    pid = append(pid, PosId{Empty, site})
+    fmt.Println("Insert - inserting (in empty tree) at ", pid.String())
+  case pos <= 1:  // inserting to the left of the tree
+    lid := paths[0]  // get path to leftmost node
+    lid[len(lid)-1].Site = ""  // remove the last disambiguator (so we insert to left of major node)
+    pid = append(lid, PosId{Left, site})
+    fmt.Println("Insert - inserting (leftmost) at ", pid.String())
+  case pos > len(nodes):  // inserting to the right of the tree
+    rid := paths[len(paths)-1]  // get path to rightmost node
+    rid[len(rid)-1].Site = ""
+    pid = append(rid, PosId{Right, site})
+    fmt.Println("Insert - inserting (rightmost) at ", pid.String())
+  default:  // inserting between two existing nodes
+    p := vpaths[pos-2]
+    f := vpaths[pos-1]
+
+    if p.before(&f) {
+      pid,_ = t.newUid(&p, &f, site)
+      fmt.Printf("1) New path between %s and %s is %s.\n", p.String(), f.String(), pid.String())
+    } else {
+      pid,_ = t.newUid(&f, &p, site)
+      fmt.Printf("2) New path between %s and %s is %s.\n", f.String(), p.String(), pid.String())
+    }
   }
+
+  return pid, t.insertNode(pid, &Node{atom, site, false, nil, nil})
+
+/*
+
+
+// special cases:
+// Empty tree
+
+// 1) insert between left node of major node and left mini-node
+// 2) insert between right mini-node and right node of major node
 
 
   switch len(nodes) {
@@ -100,24 +135,122 @@ func (t *Treedoc) Insert(pos int, atom Atom, site Disambiguator) (Path, error) {
       pid = append(pid, PosId{Right, site})
     }
   default:
+
+
+
+
+
+    // p is left of a major node containing f and f is (the leftmost) mini-node
+
+    // f is right of a major node containing p and p is (the rightmost) mini-node
+
     p := vpaths[pos-2]//t.path(pos-1)
     f := vpaths[pos-1]//t.path(pos)
+
+    ppos,pIsLast := t.miniNodePos(p)
+    fpos,fIsLast := t.miniNodePos(f)
+
+    fmt.Println(ppos, pIsLast, fpos, fIsLast)
+    switch {
+    case ppos == 0 && pIsLast && fpos == 0 && !fIsLast:
+      // remove f's Disambiguator
+      f[len(f)-1].Site = ""
+    case ppos > 0 && pIsLast && fpos == 0 && !fIsLast:
+      // remove p's Disambiguator
+      fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&")
+      p[len(p)-1].Site = ""
+    }
+
     // if err != nil {
     //   return pid, fmt.Errorf("Treedoc::Insert(...) - Could not find path for given position.")
     // }
-
-    pid,err := t.newUid(&p, &f, site)
-    if err != nil {
-      return pid, fmt.Errorf("Treedoc::Insert(...) - Failed to find a path to insert.")
+    // for _,path := range paths {
+    //   fmt.Println(path.String())
+    // }
+    // for _,path := range vpaths {
+    //   fmt.Println(path.String())
+    // }
+fmt.Printf("New path between %s and %s\n", p.String(), f.String())
+    var q Path
+    if p.before(&f) {
+      q,_ = t.newUid(&p, &f, site)
+      fmt.Printf("New path between %s and %s is %s\n", p.String(), f.String(), q.String())
+    } else {
+      fmt.Println("**********")
+      q,_ = t.newUid(&f, &p, site)
+      fmt.Printf("New path between %s and %s is %s\n", f.String(), p.String(), q.String())
     }
-  }
 
+    // if err != nil {
+    //   fmt.Println("Here si affsgfsjlkfdiofdikdh")
+    //   return pid, fmt.Errorf("Treedoc::Insert(...) - Failed to find a path to insert.")
+    // }
+    pid =q[:]
+
+  }
+  fmt.Println(pid.String())
   return pid, t.insertNode(pid, &Node{atom, site, false, nil, nil})
 
   // // TODO
-  // return Path{}, nil
+  return Path{}, nil
+*/
 }
 
+
+func (t *Treedoc) miniNodePos(path Path) (int, bool) {
+  fmt.Println("Got path", path)
+
+   // special case when path is just empty node
+
+  next := &t
+  if len(path) > 1 {
+    if len(path) == 2 && path[0].Dir == Empty {
+      // through mininodes
+      for _,m := range t.MiniNodes {
+        if m.Site == path[0].Site {
+         switch path[1].Dir {
+         case Left:
+           t = m.Left
+         case Right:
+           t = m.Right
+         }
+        }
+      }
+    } else {
+      next = t.walk(path[:len(path)-1])
+    }
+  } else {
+    switch path[0].Dir {
+    case Left:
+      t = t.Left
+    case Right:
+      t = t.Right
+    }
+    next = &t
+  }
+
+  // switch path[len(path)-1].Dir {
+  // case Left:
+  //   t = t.Left
+  // case Right:
+  //   t = t.Right
+  // }
+  // next = &t
+
+
+fmt.Println((*next).MiniNodes)
+
+  for i,p := range (*next).MiniNodes {
+    if p.Site == path[len(path)-1].Site {
+      if i == len((*next).MiniNodes) - 1 {
+        return i, true
+      } else {
+        return i, false
+      }
+    }
+  }
+  return 0, true
+}
 
 func (t *Treedoc) insertNode(path Path, n *Node) error {
   next := t.walk(path)
@@ -126,6 +259,7 @@ func (t *Treedoc) insertNode(path Path, n *Node) error {
   if *next == nil {
     *next = &Treedoc{}
   } else {
+
     for i,m := range (*next).MiniNodes {
       if m.Site > n.Site {
         inserted = true
@@ -165,33 +299,56 @@ func (t *Treedoc) walk(path Path) **Treedoc {
     return &t
   }
 
+  var midPath Path
+  if path[0].Dir == Empty {  // walk through the root mini-nodes
+    for _,m := range t.MiniNodes {
+      if m.Site == path[0].Site {
+        switch path[1].Dir {
+        case Left:
+          t = m.Left
+        case Right:
+          t = m.Right
+        }
+        break
+      }
+    }
+    midPath = path[2:pLen-1]
+  } else {
+    midPath = path[:pLen-1]
+  }
+
   // Walk the path
-  for i,p := range path[:pLen-1] {
-    switch {
-    case i > 0 && path[i-1].Site != "":
-      for _,m := range t.MiniNodes {
-        if m.Site == path[i-1].Site {
-          switch p.Dir {
-          case Left:
-            t = m.Left
-          case Right:
-            t = m.Right
+  if len(midPath) > 0 {
+    for i,p := range midPath {
+      switch {
+      case i > 0 && midPath[i-1].Site != "":
+        for _,m := range t.MiniNodes {
+          if m.Site == midPath[i-1].Site {
+            switch p.Dir {
+            case Left:
+              t = m.Left
+            case Right:
+
+              t = m.Right
+            }
+            break
           }
         }
-      }
-    default:
-      switch p.Dir {
-      case Left:
-        t = t.Left
-      case Right:
-        t = t.Right
+      default:
+        switch p.Dir {
+        case Left:
+          t = t.Left
+        case Right:
+
+          t = t.Right
+        }
       }
     }
   }
 
   // Set the return pointer
   switch {
-  case path[pLen-2].Site != "":
+  case pLen > 1 && path[pLen-2].Site != "":
     for _,m := range t.MiniNodes {
       if m.Site == path[pLen-2].Site {
         switch path[pLen-1].Dir {
@@ -200,6 +357,7 @@ func (t *Treedoc) walk(path Path) **Treedoc {
         case Right:
           return &m.Right
         }
+        break
       }
     }
   default:
@@ -218,8 +376,6 @@ func (t *Treedoc) walk(path Path) **Treedoc {
 // TODO @Nick this needs to be updated to match the interface
 // Build a list of nodes in infix order
 func (t *Treedoc) infix(p Path, paths *[]Path, n *[]*Node) {
-fmt.Printf("Infix(%v, %v)\n", p, paths)
-
   b := make(Path, len(p))
   copy(b, p)
 
@@ -260,12 +416,16 @@ fmt.Printf("Infix(%v, %v)\n", p, paths)
 
 
     if m.Left != nil {
+      if len(m.Left.MiniNodes) > 1 {
+        b = append(c, PosId{Left, m.Site})
+      } else {
+        b = append(c, PosId{Left, ""})
+      }
 
-      b = append(c, PosId{Left, m.Site})
       if len(t.MiniNodes) > 1 {
         if len(b) > 1 {
-        b[len(b)-2].Site = m.Site
-      }
+          b[len(b)-2].Site = m.Site
+        }
       }
       m.Left.infix(b, paths, n)
     }
@@ -295,12 +455,21 @@ fmt.Printf("Infix(%v, %v)\n", p, paths)
 
 
     if m.Right != nil {
-      b = append(c, PosId{Right, m.Site})
+
+      // Include disambiguator if next node has mini-nodes
+      if len(m.Right.MiniNodes) > 1 {
+        b = append(c, PosId{Right, m.Site})
+      } else {
+          b = append(c, PosId{Right, ""})
+      }
+
+      // Set the disambiguator of the previous position if I'm a mini-node
       if len(t.MiniNodes) > 1 {
         if len(b) > 1 {
-        b[len(b)-2].Site = m.Site
+          b[len(b)-2].Site = m.Site
+        }
       }
-      }
+
       m.Right.infix(b, paths, n)
     }
   }
@@ -426,25 +595,29 @@ func (t *Treedoc) traverseVisible() ([]Path, []*Node) {
 func (t *Treedoc) newUid(uidp *Path, uidf *Path, site Disambiguator) (Path, error) {
   p := Path{}
 
-  // Require uidp < uidf
-  if !uidp.before(uidf) {
-    return p, fmt.Errorf("Treedoc::newUid() - uidp not before uidf.")
-  }
+  // // Require uidp < uidf
+  // if !uidp.before(uidf) {
+  //   fmt.Println("***Here***")
+  //   *uidp, *uidf = *uidf, *uidp
+  //   //return p, fmt.Errorf("Treedoc::newUid() - uidp not before uidf.")
+  // }
 
-  // Check if there is a node between uidp and uidf. If so, call newUid on the
-  // leftmost node such that uidp < uidm < uidf.
-  paths,_ := t.traverse()
-  for i,path := range paths {
-    if path.equal(uidp) {
-      if i < len(paths)-1 {
-        if !paths[i+1].equal(uidf) {
-          return t.newUid(uidp, &paths[i+1], site)
-        }
-      } else {
-        // can't possibly be correct since uidp is at the end of the tree
-      }
-    }
-  }
+  // // Check if there is a node between uidp and uidf. If so, call newUid on the
+  // // leftmost node such that uidp < uidm < uidf.
+  // paths,_ := t.traverse()
+  // for i,path := range paths {
+  //   if path.equal(uidp) {
+  //     if i < len(paths)-1 {
+  //       if !paths[i+1].equal(uidf) {
+  //         return t.newUid(uidp, &paths[i+1], site)
+  //       }
+  //     } else {
+  //       // can't possibly be correct since uidp is at the end of the tree
+  //     }
+  //   }
+  // }
+
+
 
   // // TODO add the disabmiguator
   // // Check if there is a node between uidp and uidf. If so, call newUid on the
@@ -462,13 +635,22 @@ func (t *Treedoc) newUid(uidp *Path, uidf *Path, site Disambiguator) (Path, erro
 
   switch {
   case uidp.ancestor(uidf):
-    p = append(*uidp, PosId{Left, site})
+    p = append(*uidf, PosId{Left, site})
   case uidf.ancestor(uidp):
-    p = append(*uidf, PosId{Right, site})
+    p = append(*uidp, PosId{Right, site})
   default:
     p = append(*uidp, PosId{Right, site})
   }
 
+
+  // ppos, pIsLast := t.miniNodePos(p[:len(p)-1])
+  // fmt.Println("Sending path", p[:len(p)-1],ppos, pIsLast)
+  // if ppos == 0 && pIsLast {
+  //   p[len(p)-2].Site = ""
+  // }
+
+  // TODO @Nick Check if we need this disabmiguator
+p[len(p)-2].Site = ""
   return p, nil
 }
 
@@ -504,7 +686,7 @@ func (p *Path) ancestor(q *Path) bool {
   switch {
   case (*p)[0].Dir == Empty && (*q)[0].Dir != Empty:  // p is root and q is not
     return true
-  case p.prefix(q) > 0:  // the two nodes have some part of the path in common
+  case p.prefix(q) > 0 && len(*p) < len(*q):  // the two nodes have some part of the path in common
     return true
   default:
     return false
@@ -513,6 +695,7 @@ func (p *Path) ancestor(q *Path) bool {
 
 // p < q
 func (p *Path) before(q *Path) bool {
+  //fmt.Println("Calling before with ", p, q)
   switch {
   case p.prefix(q) == len(*p) && (*q)[len(*p)].Dir == Right:
     return true
@@ -522,6 +705,7 @@ func (p *Path) before(q *Path) bool {
     preLen := p.prefix(q)
     i1 := (*p)[preLen]
     j1 := (*q)[preLen]
+    //fmt.Printf("$$$$ len:%d, i1:%s, j1:%s\n.", preLen,i1.String(),j1.String())
     return i1.before(j1)
   }
 }
@@ -543,13 +727,13 @@ func (r *PosId) before(s PosId) bool {
   switch {
   case r.Site == "" && s.Site == "" && r.Dir == Left && s.Dir == Right:
     return true
-    case r.Site != "" && s.Site != "" && (
-      (r.Dir == Left && s.Dir == Right) || (r.Dir == s.Dir && r.Site < s.Site)):
-      return true
-    case r.Dir == Left && s.Site != "":
-      return true
-    case r.Site != "" && s.Dir == Right:
-      return true
+    //r.Site != "" && s.Site != "" &&
+  case ((r.Dir == Left && s.Dir == Right) || (r.Dir == s.Dir && r.Site < s.Site)):
+    return true
+  case r.Dir == Left && s.Site != "":
+    return true
+  case r.Site != "" && s.Dir == Right:
+    return true
   }
   return false
 }
@@ -557,16 +741,21 @@ func (r *PosId) before(s PosId) bool {
 
 // returns the longest common prefix
 func (p *Path) prefix(q *Path) int {
+  // if (*p)[0].Dir == (*q)[0].Dir && (*p)[0].Site == Empty {
+  //   return 0
+  // }
   if len(*p) >= len(*q) {
+    //fmt.Println("Ranging over q")
     for i := range *q {
-      if (*p)[i].Dir != (*q)[i].Dir || (*p)[i].Site != (*q)[i].Site {
+      //fmt.Printf("Checking: %v != %v || %s < %s\n.", (*p)[i].Dir,(*q)[i].Dir,(*p)[i].Site,(*q)[i].Site)
+      if (*p)[i].Dir != (*q)[i].Dir || ((*p)[i].Site != "" && (*q)[i].Site != "" && (*p)[i].Site != (*q)[i].Site) {
         return i
       }
     }
     return len(*q)
   } else {
     for i := range *p {
-      if (*p)[i].Dir != (*q)[i].Dir || (*p)[i].Site != (*q)[i].Site {
+      if (*p)[i].Dir != (*q)[i].Dir || ((*p)[i].Site != "" && (*q)[i].Site != "" && (*p)[i].Site != (*q)[i].Site) {
         return i
       }
     }
