@@ -41,7 +41,7 @@ import (
 
 
 
-var t Treedoc
+
 
 // func ExampleInfix() {
 //   nodeA := Node{"A", "dA", false, nil, nil}
@@ -61,7 +61,8 @@ var t Treedoc
 //   // Output:
 // }
 
-func ConstructTreeManually() {
+func ConstructTreeManually() *Treedoc {
+  var t Treedoc
   nodeA := Node{"A", "dA", false, nil, nil}
   nodeC := Node{"C", "dB", false, nil, nil}
   nodeE := Node{"E", "dA", false, nil, nil}
@@ -102,37 +103,135 @@ func ConstructTreeManually() {
   t.MiniNodes = append(t.MiniNodes, &nodeF, &nodeI)
   t.Left = &t7
   t.Right = &t6
+
+  return &t
+}
+
+func ExampleBuildTestTree() {
+  t := ConstructTreeManually()
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H I J]
+}
+
+func ExampleInsert1() {
+  t := ConstructTreeManually()
+  t.Insert(1, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [X A B C D E F G H I J]
+}
+
+func ExampleInsert2() {
+  t := ConstructTreeManually()
+  t.Insert(2, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A X B C D E F G H I J]
+}
+
+func ExampleInsert3() {
+  t := ConstructTreeManually()
+  t.Insert(3, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B X C D E F G H I J]
+}
+
+func ExampleInsert4() {
+  t := ConstructTreeManually()
+  t.Insert(4, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C X D E F G H I J]
+}
+
+func ExampleInsert5() {
+  t := ConstructTreeManually()
+  t.Insert(5, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D X E F G H I J]
+}
+
+func ExampleInsert6() {
+  t := ConstructTreeManually()
+  t.Insert(6, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E X F G H I J]
+}
+
+func ExampleInsert7() {
+  t := ConstructTreeManually()
+  t.Insert(7, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F X G H I J]
+}
+
+func ExampleInsert8() {
+  t := ConstructTreeManually()
+  t.Insert(8, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G X H I J]
+}
+
+func ExampleInsert9() {
+  t := ConstructTreeManually()
+  t.Insert(9, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H X I J]
+}
+
+func ExampleInsert10() {
+  t := ConstructTreeManually()
+  t.Insert(10, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H I X J]
+}
+
+func ExampleInsert11() {
+  t := ConstructTreeManually()
+  t.Insert(11, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H I J X]
 }
 
 
-func ExampleContents() {
-  ConstructTreeManually()
-
-
-  //fmt.Println(t.Contents())
-
-  //t.insertNode(Path{PosId{Left,"dA"},PosId{Right,""},PosId{Left,"dA"}}, &Node{"X", "dA", false, nil, nil})
-  //t.insertNode(Path{PosId{Left,"dA"},PosId{Right,""},PosId{Left,""}, PosId{Right, "dY"}}, &Node{"Y", "dA", false, nil, nil})
-  //t.insertNode(Path{PosId{Empty,"dA"}, PosId{Right, ""}, PosId{Right,"dG"}}, &Node{"Z", "dG", false, nil, nil})
-  // t.Insert(2, "X", "dX")
-  //t.insertNode(Path{PosId{Empty, "dX"}}, &Node{"X", "dX", false, nil, nil})
-  //t.insertNode(Path{PosId{Left,"dA"},PosId{Right,"dB"},PosId{Right,"dX"}},&Node{"X", "dX", false, nil, nil})
-
-  // var paths []Path
-  // var nodes []*Node
-  // t.infix(Path{}, &paths, &nodes)
-  // for _,path := range paths {
-  //   fmt.Println(path.String())
-  //   //fmt.Println(path)
-  // }
-  //fmt.Println(t.walk(Path{PosId{Left,""}, PosId{Left, ""}, PosId{Left, ""}}))
-
-  t.Insert(11, "X", "dX")
-  // p := t.walk(Path{PosId{Left, ""},PosId{Right, ""},PosId{Right,"dX"}})
-  // fmt.Println(*p)
+func ExampleInsertNode() {
+  t := ConstructTreeManually()
+  t.insertNode(Path{PosId{Left,"dX"}}, &Node{"X", "dX", false, nil, nil})
   fmt.Println(t.Contents())
-  // Output:
 
+  // Output:
+  // [A B C D X E F G H I J]
+}
+
+
+func ExampleInsertNode2() {
+  t := ConstructTreeManually()
+  t.insertNode(Path{PosId{Empty,"dX"}}, &Node{"X", "dX", false, nil, nil})
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H I X J]
 }
 
 
