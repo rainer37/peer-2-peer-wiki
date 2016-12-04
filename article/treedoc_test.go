@@ -4,63 +4,6 @@ import (
   "fmt"
 )
 
-// // This is a standard binary tree except that each node can contain many sibling
-// // nodes.
-// type Treedoc struct {
-//   MiniNodes []*Node
-//   Left *Treedoc
-//   Right *Treedoc
-// }
-//
-// // A node in the treedoc. Nodes have a value, path, disambiguator (siteId) and
-// // an indicator of whether the node is visible (deleted).
-// type Node struct {
-//   Value Atom
-//   Site Disambiguator
-//   Tombstone bool  // true if node has been deleted
-//   Left *Treedoc
-//   Right *Treedoc
-// }
-//
-// // Nodes are identified in a treedoc by their path and their disambiguator (siteId)
-// type PosId struct {
-//   Dir Direction
-//   Site Disambiguator
-// }
-//
-// // Represents the smallest unit that can be modified atomically
-// type Atom string
-//
-// // A treedoc is a binary tree so a path is a bitstring (represented as an array)
-// // starting from the root where a 0 indicates a left branch and a 1 indicates a
-// // right branch.
-// type Path []PosId
-//
-// // A globally-unique identifier for the process making the action
-// type Disambiguator string
-
-
-
-
-
-// func ExampleInfix() {
-//   nodeA := Node{"A", "dA", false, nil, nil}
-//   nodeC := Node{"C", "dB", false, nil, nil}
-//   t.MiniNodes = append(t.MiniNodes, &nodeA)
-//
-//   t1 := Treedoc{}
-//   t1.MiniNodes = append(t1.MiniNodes, &nodeC)
-//   t.Right = &t1
-//   var paths []Path
-//   var nodes []*Node
-//   t.infix(Path{}, &paths, &nodes)
-//   fmt.Println(t.Contents())
-//   for _,path := range paths {
-//     fmt.Println(path.String())
-//   }
-//   // Output:
-// }
-
 func ConstructTreeManually() *Treedoc {
   var t Treedoc
   nodeA := Node{"A", "dA", false, nil, nil}
@@ -106,6 +49,7 @@ func ConstructTreeManually() *Treedoc {
 
   return &t
 }
+
 
 func ExampleBuildTestTree() {
   t := ConstructTreeManually()
@@ -235,80 +179,112 @@ func ExampleInsertNode2() {
 }
 
 
-// func ExampleMiniNodePos() {
-//   pos,isLast := t.miniNodePos(Path{PosId{Empty,"dZ"}})
-//   switch {
-//   case pos == 0 && isLast:
-//     fmt.Println("Only node")
-//   case pos == 0:
-//     fmt.Println("Left most node")
-//   case isLast:
-//     fmt.Println("Right most node")
-//   default:
-//     fmt.Println("Middle node at pos", pos)
-//   }
-//   //Output:
-// }
+func ExampleDeleteNode1() {
+  t := ConstructTreeManually()
+  t.Delete(1, "dA")
+  fmt.Println(t.Contents())
 
+  // Output:
+  // [B C D E F G H I J]
+}
+func ExampleDeleteNode2() {
+  t := ConstructTreeManually()
+  t.Delete(2, "dA")
+  fmt.Println(t.Contents())
 
+  // Output:
+  // [A C D E F G H I J]
+}
+func ExampleDeleteNode3() {
+  t := ConstructTreeManually()
+  t.Delete(3, "dA")
+  fmt.Println(t.Contents())
 
-// func ExampleWalk() {
-//   ConstructTreeManually()
-//   pA := Path{PosId{Left, ""}, PosId{Left, ""}}
-//   // pB := Path{PosId{Left, "dA"}}
-//   // pC := Path{PosId{Left, "dA"}, PosId{Right, ""}}
-//   // pD := Path{PosId{Left, "dB"}}
-//   // pE := Path{PosId{Left, ""}, PosId{Right, ""}}
-//   // pF := Path{PosId{Empty, "dA"}}
-//   // pG := Path{PosId{Empty, "dA"}, PosId{Right, ""}}
-//   // pH := Path{PosId{Empty, "dB"}, PosId{Left, ""}}
-//   // pI := Path{PosId{Empty, "dB"}}
-//   // pJ := Path{PosId{Right, ""}}
-//   r := t.walk(pA)
-//   fmt.Println((*r).MiniNodes[0].Value)
-//   fmt.Println(t.traverse())
-//
-//   //Output:
-// }
+  // Output:
+  // [A B D E F G H I J]
+}
+func ExampleDeleteNode4() {
+  t := ConstructTreeManually()
+  t.Delete(4, "dA")
+  fmt.Println(t.Contents())
 
-// func ExampleInsertNode() {
-//
-//   // pA := Path{PosId{Left, ""}, PosId{Left, ""}, PosId{Left, ""}}
-//   // t.insertNode(pA, &Node{"X", "dA", false, nil, nil})
-//   // r,_ := t.walk(Path{PosId{Left, ""}, PosId{Left, ""}})
-//   // fmt.Printf("%p\n", r) //(*r).Left)
-//
-//
-//   //t.insertNode(Path{PosId{Left, ""}, PosId{Left, ""}}, &Node{"X", "dA", false, nil, nil})
-//   t.insertNode(Path{PosId{Empty, ""}}, &Node{"X", "d", false, nil, nil})
-//   fmt.Println(t.Contents())
-//   // Output:
-// }
-//
-// func ExampleDeleteNode() {
-//   p := Path{PosId{Left, ""}, PosId{Left, "dA"}}
-//   fmt.Println("Path is",p)
-//   t.deleteNode(p)
-//   fmt.Println(t.Contents())
-//   // Output:
-// }
+  // Output:
+  // [A B C E F G H I J]
+}
+func ExampleDeleteNode5() {
+  t := ConstructTreeManually()
+  t.Delete(5, "dA")
+  fmt.Println(t.Contents())
 
+  // Output:
+  // [A B C D F G H I J]
+}
+func ExampleDeleteNode6() {
+  t := ConstructTreeManually()
+  t.Delete(6, "dA")
+  fmt.Println(t.Contents())
 
-// func ExampleEmptyTree() {
-//   r := Treedoc{}
-//   r.Insert(1, "Hello", "dA")
-//   r.Insert(1, "Something", "dA")
-//   r.Insert(2, "Goodbye", "dA")
-//   fmt.Println(r.Contents())
-//   // output:
-// }
-//
-// func ExampleConcurrent() {
-//   r := Treedoc{}
-//   r.Insert(1, "Hello", "dA")
-//   r.Insert(1, "Something", "dA")
-//   r.Insert(2, "Goodbye", "dA")
-//   r.insertNode(Path{PosId{Empty,"d"}}, &Node{"Ducue", "d", false, nil, nil})
-//   fmt.Println(r.Contents())
-//   // output:
-// }
+  // Output:
+  // [A B C D E G H I J]
+}
+func ExampleDeleteNode7() {
+  t := ConstructTreeManually()
+  t.Delete(7, "dA")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F H I J]
+}
+func ExampleDeleteNode8() {
+  t := ConstructTreeManually()
+  t.Delete(8, "dA")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G I J]
+}
+func ExampleDeleteNode9() {
+  t := ConstructTreeManually()
+  t.Delete(9, "dA")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H J]
+}
+func ExampleDeleteNode10() {
+  t := ConstructTreeManually()
+  t.Delete(10, "dA")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H I]
+}
+func ExampleDeleteNode11() {
+  t := ConstructTreeManually()
+  t.Delete(11, "dA")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A B C D E F G H I]
+}
+
+func ExampleDeleteInsert1() {
+  t := ConstructTreeManually()
+  t.Delete(2, "dA")
+  t.Insert(2, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A X C D E F G H I J]
+}
+
+func ExampleDeleteInsert2() {
+  t := ConstructTreeManually()
+  t.Delete(2, "dA")
+  t.Delete(2, "dA")
+  t.Insert(2, "X", "dX")
+  fmt.Println(t.Contents())
+
+  // Output:
+  // [A X D E F G H I J]
+}
