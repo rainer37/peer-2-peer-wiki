@@ -1,7 +1,7 @@
 # P2P Wikipedia
 
 ## Installation
-To install p2pwiki, clone the repo into your golang working directory and run
+To install p2pwiki, clone the repo into your golang working directory and run:
 ```
 > go install github.com/nickbradley/p2pwiki
 ```
@@ -10,12 +10,12 @@ To install p2pwiki, clone the repo into your golang working directory and run
 ### Running the chord server
 To start the first node in the chord ring:
 ```
-> p2pwiki 127.0.0.1:2222 server start create
+> p2pwiki 127.0.0.1:2222 server create
 ```
 
 To join an existing chord ring:
 ```
-> p2pwiki 127.0.0.1:3333 server start join 127.0.0.1:2222
+> p2pwiki 127.0.0.1:3333 server join 127.0.0.1:2222
 ```
 
 ### Interacting with an article
