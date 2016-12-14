@@ -54,6 +54,7 @@ B
 second sentence
 
 > p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 delete A1 1
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 view A1
 
 A1
 ---

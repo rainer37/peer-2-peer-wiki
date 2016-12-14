@@ -5,6 +5,7 @@ import (
   "fmt"
   "log"
   "strconv"
+  "strings"
   "github.com/nickbradley/p2pwiki/chord"
   "github.com/nickbradley/p2pwiki/article"
   "bitbucket.org/bestchai/dinv/dinvRT"
@@ -38,7 +39,7 @@ func main() {
     default: log.Fatal("Invalid server start command.")
     }
   case "article":
-    subdir := srvAddr
+    subdir := strings.Replace(srvAddr, ":","_",1)
     srvAddr := subArg[0]
     subCmd := subArg[1]
     subArg := subArg[2:]
