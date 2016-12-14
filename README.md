@@ -1,5 +1,11 @@
 # P2P Wikipedia
 
+## Installation
+To install p2pwiki, clone the repo into your golang working directory and run
+```
+> go install github.com/nickbradley/p2pwiki
+```
+
 ## Usage
 ### Running the chord server
 To start the first node in the chord ring:
@@ -13,66 +19,61 @@ To join an existing chord ring:
 ```
 
 ### Interacting with an article
-Before viewing/editing an article, it must first be pulled from a peer and stored
-in the local cache:
+All article commands have the form
 ```
-> p2pwiki 127.0.0.1:2222 article pull beer
-
-Article beer has been pulled successfully from 127.0.0.1:3333.
+p2pwiki <ip:port client> article <ip:port local server> <op> <title> <opargs>
 ```
 
-To view a cached article:
-```
-> p2pwiki 127.0.0.1:2222 article view beer
 
-Beer
+Before viewing/editing an article, it must first be pulled from a peer and stored in the local cache:
+```
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 pull A1
+
+Article A1 has been pulled successfully from 127.0.0.1:3333.
+```
+
+To view a local article:
+```
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 view A1
+
+A1
 ----
-Beer is delicious.
-There are many types of beer.
+B
 ```
 
-Cached articles can be edited using:
+Local articles can be edited using:
 ```
-> p2pwiki 127.0.0.1:2222 article insert 3 "Beer has been around for a long time."
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 insert A1 2 "second sentence"
+Insert into A1 succeed...
 
-Beer
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 view A1
+
+A1
 ---
-Beer is delicious.
-There are many types of beer.
-Beer has been around for a long time.
+B
+second sentence
 
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 delete A1 1
 
-> p2pwiki 127.0.0.1:2222 article delete 1
-
-Beer
+A1
 ---
-There are many types of beer.
-Beer has been around for a long time.
+second sentence
 ```
 
 To share your changes you must push your edits to the peer server:
 ```
-> p2pwiki 127.0.0.1:2222 article push beer
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 push A1
 
-Article beer has sent to 127.0.0.1:3333.
+Article A1 has sent to 127.0.0.1:3333.
 ```
 Notice that the CRDT will automagically merge changes from multiple pushes.
 
+You can also discard edits by running:
+```
+> p2pwiki 127.0.0.1:3334 article 127.0.0.1:3333 discard A1
+```
+
 ## Project structure
-You'll need the following directory structure (create it in some parent directory):
-
-```
-parent_dir
- |-- bin
- |-- pkg
- |-- src
-     |-- github.com
-         |-- nickbradley
-```
-
-Then `cd` into `src/github.com/nickbradley` and run `git clone https://github.com/nickbradley/p2pwiki.git`. Finally, create a directory
-`vendor` in `p2pwiki`. After cloning, the directory should look like:
-
 ```
 parent_dir
  |-- bin
@@ -81,8 +82,10 @@ parent_dir
      |-- github.com
          |-- nickbradley
              |-- p2pwiki
-                 |-- vendor
-                 |-- article.go
+                 |-- article
+                     |-- article.go
+                     |-- treedoc.go
+                 |-- chord
+                     |-- chord.go
                  |-- p2pwiki.go
-                 |-- peer.go
 ```

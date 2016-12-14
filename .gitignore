@@ -66,3 +66,7 @@ vendor/
 *.synctex.gz
 *.synctex.gz(busy)
 *.pdfsync
+
+
+## Misc
+*.txt
